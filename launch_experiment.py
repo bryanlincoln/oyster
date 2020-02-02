@@ -12,7 +12,7 @@ import torch
 from rlkit.envs import ENVS
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.torch.sac.policies import TanhGaussianPolicy
-from rlkit.torch.networks import FlattenMlp, MlpEncoder, RecurrentEncoder
+from rlkit.torch.networks import FlattenMlp, MlpEncoder, RecurrentEncoder, Mlp
 from rlkit.torch.sac.sac import PEARLSoftActorCritic
 from rlkit.torch.sac.agent import PEARLAgent
 from rlkit.launchers.launcher_util import setup_logger
@@ -42,6 +42,12 @@ def experiment(variant):
         input_size=context_encoder_input_dim,
         output_size=context_encoder_output_dim,
     )
+    # decoder takes in encoder output and outputs its reconstruction
+    context_decoder = Mlp(
+        hidden_sizes=[200, 200, 200],
+        input_size=context_encoder_output_dim, # context encoder output is mean and variance
+        output_size=context_encoder_input_dim,
+    )
     qf1 = FlattenMlp(
         hidden_sizes=[net_size, net_size, net_size],
         input_size=obs_dim + action_dim + latent_dim,
@@ -66,6 +72,7 @@ def experiment(variant):
     agent = PEARLAgent(
         latent_dim,
         context_encoder,
+        context_decoder,
         policy,
         **variant['algo_params']
     )

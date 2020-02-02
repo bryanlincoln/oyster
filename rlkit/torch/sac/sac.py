@@ -88,6 +88,10 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             self.agent.context_encoder.parameters(),
             lr=context_lr,
         )
+        self.decoder_optimizer = optimizer_class(
+            self.agent.context_decoder.parameters(),
+            lr=context_lr,
+        )
 
     ###### Torch stuff #####
     @property
@@ -138,7 +142,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         # group like elements together
         context = [[x[i] for x in context] for i in range(len(context[0]))]
         context = [torch.cat(x, dim=0) for x in context]
-        # full context consists of [obs, act, rewards, next_obs, terms]
+        # full context consists of [obs, act, rewards, next_obs, terminals]
         # if dynamics don't change across tasks, don't include next_obs
         # don't include terminals in context
         if self.use_next_obs_in_context:
@@ -183,7 +187,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         obs, actions, rewards, next_obs, terms = self.sample_sac(indices)
 
         # run inference in networks
-        policy_outputs, task_z = self.agent(obs, context)
+        policy_outputs, task_z, decoded_context = self.agent(obs, context)
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
 
         # flattens out the task dimension
@@ -207,6 +211,19 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             kl_div = self.agent.compute_kl_div()
             kl_loss = self.kl_lambda * kl_div
             kl_loss.backward(retain_graph=True)
+
+        # decoder loss
+        self.decoder_optimizer.zero_grad()
+        # calculate loss for every sample
+        decoder_loss = 0.5 * (decoded_context - context).pow(2).sum(-1).unsqueeze(-1)
+        # scale it to use as intrinsic reward
+        intrinsic_reward = 0.01 * decoder_loss.detach()
+        # calculate mean to update parameters
+        decoder_loss = decoder_loss.mean()
+        self.decoder_optimizer.step()
+
+        # add intrinsic_reward
+        rewards += intrinsic_reward
 
         # qf and encoder update (note encoder does not get grads from policy or vf)
         self.qf1_optimizer.zero_grad()
@@ -292,6 +309,9 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
                 'Policy log std',
                 ptu.get_numpy(policy_log_std),
             ))
+
+            self.eval_statistics['Decoder Loss'] = decoder_loss.cpu().item()
+            self.eval_statistics['Mean Intrinsic Reward'] = intrinsic_reward.mean().cpu().item()
 
     def get_epoch_snapshot(self, epoch):
         # NOTE: overriding parent method which also optionally saves the env
