@@ -137,8 +137,6 @@ class PEARLAgent(nn.Module):
         else:
             self.z_means = torch.mean(params, dim=1)
         self.sample_z()
-        # return params for decoding
-        return params.detach()
 
     def sample_z(self):
         if self.use_ib:
@@ -160,12 +158,8 @@ class PEARLAgent(nn.Module):
 
     def forward(self, obs, context):
         ''' given context, get statistics under the current policy of a set of observations '''
-        encoded_context = self.infer_posterior(context)
+        self.infer_posterior(context)
         self.sample_z()
-
-        # use context decoder to quantitize encoder certanty
-        # detach z from encoder grads to use different losses
-        decoded_context = self.context_decoder(encoded_context)
 
         task_z = self.z
 
@@ -178,7 +172,7 @@ class PEARLAgent(nn.Module):
         in_ = torch.cat([obs, task_z.detach()], dim=1)
         policy_outputs = self.policy(in_, reparameterize=True, return_log_prob=True)
 
-        return policy_outputs, task_z, decoded_context
+        return policy_outputs, task_z, self.z
 
     def log_diagnostics(self, eval_statistics):
         '''
