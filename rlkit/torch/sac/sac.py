@@ -207,6 +207,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         intrinsic_reward = 0.01 * decoder_loss.detach()
         # calculate mean to update parameters
         decoder_loss = decoder_loss.mean()
+        decoder_loss.backward()
         self.decoder_optimizer.step()
         # add intrinsic_reward
         rewards += intrinsic_reward
