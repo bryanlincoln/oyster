@@ -195,7 +195,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         # repeat for the batch dimension
         z = z.repeat((1, obs.size()[1], 1))
         # concatenate with observations and actions
-        decoder_input = torch.cat([obs, actions, z], dim=2)
+        decoder_input = torch.cat([obs.detach(), actions.detach(), z.detach()], dim=2)
         # run inference in decoder
         preds_next_obs = self.agent.context_decoder(decoder_input)
 
