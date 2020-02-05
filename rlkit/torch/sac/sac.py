@@ -187,28 +187,18 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         obs, actions, rewards, next_obs, terms = self.sample_sac(indices)
 
         # run inference in networks
-        policy_outputs, task_z, z = self.agent(obs, context)
+        policy_outputs, task_z, decoded_context = self.agent(obs, context)
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
-
-        # add batch dimension to Z
-        z = z.view(num_tasks, -1, self.latent_dim)
-        # repeat for the batch dimension
-        z = z.repeat((1, obs.size()[1], 1))
-        # concatenate with observations and actions
-        decoder_input = torch.cat([obs.detach(), actions.detach(), z.detach()], dim=2)
-        # run inference in decoder
-        preds_next_obs = self.agent.context_decoder(decoder_input)
 
         # decoder loss
         self.decoder_optimizer.zero_grad()
         # calculate loss for every sample
-        decoder_loss = 0.5 * (preds_next_obs - next_obs.detach()).pow(2).sum(-1).unsqueeze(-1)
+        decoder_loss = 0.5 * (decoded_context - context.detach()).pow(2).sum(-1).unsqueeze(-1)
         # scale it to use as intrinsic reward
-        intrinsic_reward = 0.01 * decoder_loss.detach()
+        intrinsic_reward = 0.001 * decoder_loss.detach()
         # calculate mean to update parameters
         decoder_loss = decoder_loss.mean()
-        decoder_loss.backward()
-        self.decoder_optimizer.step()
+        decoder_loss.backward(retain_graph=True)
         # add intrinsic_reward
         rewards += intrinsic_reward
 
@@ -247,6 +237,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
         self.context_optimizer.step()
+        self.decoder_optimizer.step()
 
         # compute min Q on the new actions
         min_q_new_actions = self._min_q(obs, new_actions, task_z)

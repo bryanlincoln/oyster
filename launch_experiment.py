@@ -42,11 +42,11 @@ def experiment(variant):
         input_size=context_encoder_input_dim,
         output_size=context_encoder_output_dim,
     )
-    # decoder taks in (obs, act, z) and outputs next_obs
+    # decoder takes in encoder output (latent state) and outputs context
     context_decoder = Mlp(
         hidden_sizes=[200, 200, 200],
-        input_size=obs_dim + action_dim + latent_dim,
-        output_size=obs_dim,
+        input_size=context_encoder_output_dim,
+        output_size=context_encoder_input_dim,
     )
     qf1 = FlattenMlp(
         hidden_sizes=[net_size, net_size, net_size],

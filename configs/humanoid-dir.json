@@ -18,6 +18,6 @@
         "embedding_mini_batch_size": 256
     },
     "util_params": {
-        "use_gpu": false
+        "use_gpu": true
     }
 }
