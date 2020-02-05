@@ -11,6 +11,7 @@ from rlkit.data_management.path_builder import PathBuilder
 from rlkit.samplers.in_place import InPlacePathSampler
 from rlkit.torch import pytorch_util as ptu
 
+from fcm_notifier import FCMNotifier
 
 class MetaRLAlgorithm(metaclass=abc.ABCMeta):
     def __init__(
@@ -120,6 +121,8 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
         self._old_table_keys = None
         self._current_path_builder = PathBuilder()
         self._exploration_paths = []
+
+        self.notifier = FCMNotifier()
 
     def make_exploration_policy(self, policy):
          return policy
@@ -460,6 +463,18 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
         self.eval_statistics['AverageReturn_all_test_tasks'] = avg_test_return
         logger.save_extra_data(avg_train_online_return, path='online-train-epoch{}'.format(epoch))
         logger.save_extra_data(avg_test_online_return, path='online-test-epoch{}'.format(epoch))
+
+        self.notifier.notify(
+            Epoch=epoch,
+            Env_Steps=self._n_env_steps_total,
+            VF_Loss=self.eval_statistics['VF Loss'],
+            QF_Loss=self.eval_statistics['QF Loss'],
+            Policy_Loss=self.eval_statistics['Policy Loss'],
+            Decoder_Loss=self.eval_statistics['Decoder Loss'],
+            Intrinsic_Rew=self.eval_statistics['Mean Intrinsic Reward'],
+            Return_Train=self.eval_statistics['AverageReturn_all_train_tasks'],
+            Return_Test=self.eval_statistics['AverageReturn_all_test_tasks']
+        )
 
         for key, value in self.eval_statistics.items():
             logger.record_tabular(key, value)
