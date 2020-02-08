@@ -470,8 +470,8 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             VF_Loss=self.eval_statistics['VF Loss'],
             QF_Loss=self.eval_statistics['QF Loss'],
             Policy_Loss=self.eval_statistics['Policy Loss'],
-            Decoder_Loss=self.eval_statistics['Decoder Loss'],
-            Intrinsic_Rew=self.eval_statistics['Mean Intrinsic Reward'],
+            Decoder_Loss=self.eval_statistics['Decoder Loss'] if 'Decoder Loss' in self.eval_statistics else 0,
+            Intrinsic_Rew=self.eval_statistics['Mean Intrinsic Reward'] if 'Mean Intrinsic Reward' in self.eval_statistics else 0,
             Return_Train=self.eval_statistics['AverageReturn_all_train_tasks'],
             Return_Test=self.eval_statistics['AverageReturn_all_test_tasks']
         )

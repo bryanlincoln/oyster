@@ -67,13 +67,14 @@ def experiment(variant):
         hidden_sizes=[net_size, net_size, net_size],
         obs_dim=obs_dim + latent_dim,
         latent_dim=latent_dim,
-        action_dim=action_dim,
+        action_dim=action_dim
     )
     agent = PEARLAgent(
         latent_dim,
         context_encoder,
         context_decoder,
         policy,
+        use_curiosity=variant['use_curiosity'],
         **variant['algo_params']
     )
     algorithm = PEARLSoftActorCritic(
@@ -82,6 +83,7 @@ def experiment(variant):
         eval_tasks=list(tasks[-variant['n_eval_tasks']:]),
         nets=[agent, qf1, qf2, vf],
         latent_dim=latent_dim,
+        use_curiosity=variant['use_curiosity'],
         **variant['algo_params']
     )
 

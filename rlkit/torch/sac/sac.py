@@ -36,6 +36,9 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             soft_target_tau=1e-2,
             plotter=None,
             render_eval_paths=False,
+
+            use_curiosity=False,
+
             **kwargs
     ):
         super().__init__(
@@ -92,6 +95,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             self.agent.context_decoder.parameters(),
             lr=context_lr,
         )
+
+        self.use_curiosity = use_curiosity
 
     ###### Torch stuff #####
     @property
@@ -159,13 +164,18 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         # sample context batch
         context_batch = self.sample_context(indices)
 
+        # sample (possibly) different contexts for encoder/decoder training
+        if self.use_curiosity:
+            context_batch2 = self.sample_context(indices)
+
         # zero out context and hidden encoder state
         self.agent.clear_z(num_tasks=len(indices))
 
         # do this in a loop so we can truncate backprop in the recurrent encoder
         for i in range(num_updates):
             context = context_batch[:, i * mb_size: i * mb_size + mb_size, :]
-            self._take_step(indices, context)
+            context2 = context_batch2[:, i * mb_size: i * mb_size + mb_size, :] if self.use_curiosity else None
+            self._take_step(indices, context, context2)
 
             # stop backprop
             self.agent.detach_z()
@@ -179,7 +189,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
     def _update_target_network(self):
         ptu.soft_update_from_to(self.vf, self.target_vf, self.soft_target_tau)
 
-    def _take_step(self, indices, context):
+    def _take_step(self, indices, context, context2):
 
         num_tasks = len(indices)
 
@@ -187,20 +197,21 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         obs, actions, rewards, next_obs, terms = self.sample_sac(indices)
 
         # run inference in networks
-        policy_outputs, task_z, decoded_context = self.agent(obs, context)
+        policy_outputs, task_z, decoded_context = self.agent(obs, context, context2)
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
 
-        # decoder loss
-        self.decoder_optimizer.zero_grad()
-        # calculate loss for every sample
-        decoder_loss = 0.5 * (decoded_context - context.detach()).pow(2).sum(-1).unsqueeze(-1)
-        # scale it to use as intrinsic reward
-        intrinsic_reward = 0.001 * decoder_loss.detach()
-        # calculate mean to update parameters
-        decoder_loss = decoder_loss.mean()
-        decoder_loss.backward(retain_graph=True)
-        # add intrinsic_reward
-        rewards += intrinsic_reward
+        if self.use_curiosity:
+            # decoder loss
+            self.decoder_optimizer.zero_grad()
+            # calculate loss for every sample
+            decoder_loss = 0.5 * (decoded_context - context2.detach()).pow(2).sum(-1).unsqueeze(-1)
+            # calculate mean to update parameters
+            decoder_loss = decoder_loss.mean()
+            # scale it to use as intrinsic reward
+            intrinsic_reward = 10 * decoder_loss.detach()
+            decoder_loss.backward(retain_graph=True)
+            # add intrinsic_reward
+            rewards += intrinsic_reward
 
         # flattens out the task dimension
         t, b, _ = obs.size()
@@ -237,7 +248,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
         self.context_optimizer.step()
-        self.decoder_optimizer.step()
+        if self.use_curiosity:
+            self.decoder_optimizer.step()
 
         # compute min Q on the new actions
         min_q_new_actions = self._min_q(obs, new_actions, task_z)
@@ -310,8 +322,9 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
                 ptu.get_numpy(policy_log_std),
             ))
 
-            self.eval_statistics['Decoder Loss'] = decoder_loss.cpu().item()
-            self.eval_statistics['Mean Intrinsic Reward'] = intrinsic_reward.mean().cpu().item()
+            if self.use_curiosity:
+                self.eval_statistics['Decoder Loss'] = decoder_loss.cpu().item()
+                self.eval_statistics['Mean Intrinsic Reward'] = intrinsic_reward.mean().cpu().item()
 
     def get_epoch_snapshot(self, epoch):
         # NOTE: overriding parent method which also optionally saves the env

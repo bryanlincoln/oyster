@@ -47,6 +47,7 @@ class PEARLAgent(nn.Module):
                  context_encoder,
                  context_decoder,
                  policy,
+                 use_curiosity=False,
                  **kwargs
     ):
         super().__init__()
@@ -68,6 +69,8 @@ class PEARLAgent(nn.Module):
         self.register_buffer('z_vars', torch.zeros(1, latent_dim))
 
         self.clear_z()
+
+        self.use_curiosity = use_curiosity
 
     def clear_z(self, num_tasks=1):
         '''
@@ -157,11 +160,17 @@ class PEARLAgent(nn.Module):
     def set_num_steps_total(self, n):
         self.policy.set_num_steps_total(n)
 
-    def forward(self, obs, context):
+    def forward(self, obs, context, context2):
         ''' given context, get statistics under the current policy of a set of observations '''
-        encoded_context = self.infer_posterior(context)
-        # dont detach encoded context so decoder grads can flow through encoder
-        decoded_context = self.context_decoder(encoded_context)
+        self.infer_posterior(context)
+
+        if self.use_curiosity:
+            # dont detach encoded context so decoder grads can flow through encoder
+            encoded_context = self.context_encoder(context2)
+            encoded_context = encoded_context.view(context.size(0), -1, self.context_encoder.output_size)
+            decoded_context = self.context_decoder(encoded_context)
+        else:
+            decoded_context = None
 
         self.sample_z()
 
