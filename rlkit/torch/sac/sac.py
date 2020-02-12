@@ -38,6 +38,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             render_eval_paths=False,
 
             use_curiosity=False,
+            pred_next_obs=False,
+            curiosity_eta=0.01,
 
             **kwargs
     ):
@@ -97,6 +99,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         )
 
         self.use_curiosity = use_curiosity
+        self.pred_next_obs = pred_next_obs
+        self.curiosity_eta = curiosity_eta
 
     ###### Torch stuff #####
     @property
@@ -165,7 +169,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         context_batch = self.sample_context(indices)
 
         # sample (possibly) different contexts for encoder/decoder training
-        if self.use_curiosity:
+        if self.use_curiosity and not self.pred_next_obs:
             context_batch2 = self.sample_context(indices)
 
         # zero out context and hidden encoder state
@@ -174,7 +178,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         # do this in a loop so we can truncate backprop in the recurrent encoder
         for i in range(num_updates):
             context = context_batch[:, i * mb_size: i * mb_size + mb_size, :]
-            context2 = context_batch2[:, i * mb_size: i * mb_size + mb_size, :] if self.use_curiosity else None
+            context2 = context_batch2[:, i * mb_size: i * mb_size + mb_size, :] \
+                        if self.use_curiosity and not self.pred_next_obs else None
             self._take_step(indices, context, context2)
 
             # stop backprop
@@ -197,18 +202,39 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         obs, actions, rewards, next_obs, terms = self.sample_sac(indices)
 
         # run inference in networks
-        policy_outputs, task_z, decoded_context = self.agent(obs, context, context2)
+        policy_outputs, task_z, encoded_transitions, z = self.agent(obs, context)
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
 
         if self.use_curiosity:
-            # decoder loss
-            self.decoder_optimizer.zero_grad()
-            # calculate loss for every sample
-            decoder_loss = 0.5 * (decoded_context - context2.detach()).pow(2).sum(-1).unsqueeze(-1)
+            if self.pred_next_obs:
+                # add batch dimension to Z
+                z = z.view(num_tasks, -1, self.latent_dim)
+                # repeat for the batch dimension
+                z = z.repeat((1, obs.size(1), 1))
+                # concatenate with observations and actions
+                decoder_input = torch.cat([obs.detach(), actions.detach(), z.detach()], dim=2)
+                # run inference in decoder
+                preds_next_obs = self.agent.context_decoder(decoder_input)
+
+                # decoder loss
+                self.decoder_optimizer.zero_grad()
+                # calculate loss for every sample
+                decoder_loss = 0.5 * (preds_next_obs - next_obs.detach()).pow(2).sum(-1).unsqueeze(-1)
+            else:
+                # dont detach encoded context so decoder grads can flow through encoder
+                encoded_context = self.agent.context_encoder(context2)
+                encoded_context = encoded_context.view(context2.size(0), -1, self.agent.context_encoder.output_size)
+                decoded_context = self.agent.context_decoder(encoded_context)
+
+                # decoder loss
+                self.decoder_optimizer.zero_grad()
+                # calculate loss for every sample
+                decoder_loss = 0.5 * (decoded_context - context2.detach()).pow(2).sum(-1).unsqueeze(-1)
+
             # calculate mean to update parameters
             decoder_loss = decoder_loss.mean()
             # scale it to use as intrinsic reward
-            intrinsic_reward = 10 * decoder_loss.detach()
+            intrinsic_reward = self.curiosity_eta * decoder_loss.detach()
             decoder_loss.backward(retain_graph=True)
             # add intrinsic_reward
             rewards += intrinsic_reward

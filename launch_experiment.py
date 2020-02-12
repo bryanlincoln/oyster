@@ -42,12 +42,26 @@ def experiment(variant):
         input_size=context_encoder_input_dim,
         output_size=context_encoder_output_dim,
     )
+
     # decoder takes in encoder output (latent state) and outputs context
-    context_decoder = Mlp(
-        hidden_sizes=[200, 200, 200],
-        input_size=context_encoder_output_dim,
-        output_size=context_encoder_input_dim,
-    )
+    if variant['curiosity_params']['use_curiosity']:
+        if variant['curiosity_params']['pred_next_obs']:
+            # (task, batch, obs + act + z) -> decoder -> (task, batch, next_obs)
+            context_decoder = Mlp(
+                hidden_sizes=[200, 200, 200],
+                input_size=obs_dim + latent_dim + action_dim,
+                output_size=obs_dim,
+            )
+        else:
+            # (task, batch, latent context) -> decoder -> (task, batch, obs + act + rew)
+            context_decoder = Mlp(
+                hidden_sizes=[200, 200, 200],
+                input_size=context_encoder_output_dim,
+                output_size=context_encoder_input_dim,
+            )
+    else:
+        context_decoder = None
+
     qf1 = FlattenMlp(
         hidden_sizes=[net_size, net_size, net_size],
         input_size=obs_dim + action_dim + latent_dim,
@@ -74,7 +88,6 @@ def experiment(variant):
         context_encoder,
         context_decoder,
         policy,
-        use_curiosity=variant['use_curiosity'],
         **variant['algo_params']
     )
     algorithm = PEARLSoftActorCritic(
@@ -83,7 +96,9 @@ def experiment(variant):
         eval_tasks=list(tasks[-variant['n_eval_tasks']:]),
         nets=[agent, qf1, qf2, vf],
         latent_dim=latent_dim,
-        use_curiosity=variant['use_curiosity'],
+        use_curiosity=variant['curiosity_params']['use_curiosity'],
+        pred_next_obs=variant['curiosity_params']['pred_next_obs'],
+        curiosity_eta=variant['curiosity_params']['eta'],
         **variant['algo_params']
     )
 

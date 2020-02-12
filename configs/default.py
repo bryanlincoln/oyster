@@ -7,6 +7,11 @@ default_config = dict(
     latent_size=5, # dimension of the latent context vector
     net_size=300, # number of units per FC layer in each network
     path_to_weights=None, # path to pre-trained weights to load into networks
+    curiosity_params=dict(
+        use_curiosity=True,
+        pred_next_obs=True,
+        eta=0.01
+    ),
     env_params=dict(
         n_tasks=2, # number of distinct tasks in this domain, shoudl equal sum of train and eval tasks
         randomize_tasks=True, # shuffle the tasks after creating them
