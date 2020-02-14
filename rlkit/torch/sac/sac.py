@@ -40,6 +40,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             use_curiosity=False,
             pred_next_obs=False,
             curiosity_eta=0.01,
+            fwd_lr=3e-5,
 
             **kwargs
     ):
@@ -237,6 +238,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             intrinsic_reward = self.curiosity_eta * decoder_loss.detach()
             decoder_loss.backward(retain_graph=True)
             # add intrinsic_reward
+            extrinsic_rewards = rewards.clone()
             rewards += intrinsic_reward
 
         # flattens out the task dimension
@@ -347,6 +349,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
                 'Policy log std',
                 ptu.get_numpy(policy_log_std),
             ))
+
+            self.eval_statistics['Mean Reward'] = extrinsic_rewards.mean().cpu().item()
 
             if self.use_curiosity:
                 self.eval_statistics['Decoder Loss'] = decoder_loss.cpu().item()

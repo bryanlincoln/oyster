@@ -10,7 +10,8 @@ default_config = dict(
     curiosity_params=dict(
         use_curiosity=True,
         pred_next_obs=True,
-        eta=0.01
+        eta=0.01,
+        fwd_lr=3e-5
     ),
     env_params=dict(
         n_tasks=2, # number of distinct tasks in this domain, shoudl equal sum of train and eval tasks

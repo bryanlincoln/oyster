@@ -19,5 +19,8 @@
         "embedding_batch_size": 256,
         "embedding_mini_batch_size": 256,
         "max_path_length": 150
+    },
+    "curiosity_params": {
+        "eta": 100
     }
 }
