@@ -94,10 +94,11 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             self.agent.context_encoder.parameters(),
             lr=context_lr,
         )
-        self.decoder_optimizer = optimizer_class(
-            self.agent.context_decoder.parameters(),
-            lr=context_lr,
-        )
+        if use_curiosity:
+            self.decoder_optimizer = optimizer_class(
+                self.agent.context_decoder.parameters(),
+                lr=fwd_lr,
+            )
 
         self.use_curiosity = use_curiosity
         self.pred_next_obs = pred_next_obs
@@ -350,9 +351,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
                 ptu.get_numpy(policy_log_std),
             ))
 
-            self.eval_statistics['Mean Reward'] = extrinsic_rewards.mean().cpu().item()
-
             if self.use_curiosity:
+                self.eval_statistics['Mean Reward'] = extrinsic_rewards.mean().cpu().item()
                 self.eval_statistics['Decoder Loss'] = decoder_loss.cpu().item()
                 self.eval_statistics['Mean Intrinsic Reward'] = intrinsic_reward.mean().cpu().item()
 
