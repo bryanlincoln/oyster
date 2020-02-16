@@ -16,6 +16,7 @@ default_config = dict(
     env_params=dict(
         n_tasks=2, # number of distinct tasks in this domain, shoudl equal sum of train and eval tasks
         randomize_tasks=True, # shuffle the tasks after creating them
+        n_train_tasks=1 # necessary if sampling test tasks out of distribution
     ),
     algo_params=dict(
         meta_batch=16, # number of tasks to average the gradient across

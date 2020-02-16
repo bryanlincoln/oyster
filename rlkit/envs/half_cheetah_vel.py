@@ -23,9 +23,9 @@ class HalfCheetahVelEnv(HalfCheetahEnv):
         model-based control", 2012
         (https://homes.cs.washington.edu/~todorov/papers/TodorovIROS12.pdf)
     """
-    def __init__(self, task={}, n_tasks=2, randomize_tasks=True):
+    def __init__(self, task={}, n_tasks=2, randomize_tasks=True, n_train_tasks=None):
         self._task = task
-        self.tasks = self.sample_tasks(n_tasks)
+        self.tasks = self.sample_tasks(n_tasks, n_train_tasks)
         self._goal_vel = self.tasks[0].get('velocity', 0.0)
         self._goal = self._goal_vel
         super(HalfCheetahVelEnv, self).__init__()
@@ -46,10 +46,16 @@ class HalfCheetahVelEnv(HalfCheetahEnv):
             reward_ctrl=-ctrl_cost, task=self._task)
         return (observation, reward, done, infos)
 
-    def sample_tasks(self, num_tasks):
+    def sample_tasks(self, n_tasks, n_train_tasks):
         np.random.seed(1337)
-        velocities = np.random.uniform(0.0, 3.0, size=(num_tasks,))
-        tasks = [{'velocity': velocity} for velocity in velocities]
+        if n_train_tasks is not None:
+            velocities_train = np.random.uniform(0.0, 2.0, size=(n_train_tasks,))
+            velocities_test = np.random.uniform(2.0, 3.0, size=(n_tasks - n_train_tasks,))
+            tasks = [{'velocity': velocity} for velocity in velocities_train]
+            tasks += [{'velocity': velocity} for velocity in velocities_test]
+        else:
+            velocities = np.random.uniform(0.0, 3.0, size=(n_tasks,))
+            tasks = [{'velocity': velocity} for velocity in velocities]
         return tasks
 
     def get_all_task_idx(self):
