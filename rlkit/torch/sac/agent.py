@@ -122,6 +122,13 @@ class PEARLAgent(nn.Module):
         kl_div_sum = torch.sum(torch.stack(kl_divs))
         return kl_div_sum
 
+    def compute_entropy(self):
+        # instantiate distributions and calculate entropies
+        entropies = [torch.distributions.Normal(mu, torch.sqrt(var)).entropy() for mu, var in zip(torch.unbind(self.z_means), torch.unbind(self.z_vars))]
+        # create a tensor given these entropies
+        entropies = torch.stack(entropies)
+        return entropies.mean() # return the mean entropy
+
     def infer_posterior(self, context):
         ''' compute q(z|c) as a function of input context and sample new z from it'''
         params = self.context_encoder(context)

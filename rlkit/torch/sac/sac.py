@@ -42,6 +42,9 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             curiosity_eta=0.01,
             fwd_lr=3e-5,
 
+            entropy_coef=0.01,
+            maximize_entropy=False,
+
             **kwargs
     ):
         super().__init__(
@@ -103,6 +106,9 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         self.use_curiosity = use_curiosity
         self.pred_next_obs = pred_next_obs
         self.curiosity_eta = curiosity_eta
+
+        self.entropy_coef = entropy_coef
+        self.maximize_entropy = maximize_entropy
 
     ###### Torch stuff #####
     @property
@@ -262,6 +268,12 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         if self.use_information_bottleneck:
             kl_div = self.agent.compute_kl_div()
             kl_loss = self.kl_lambda * kl_div
+
+            if self.maximize_entropy:
+                latent_entropy = self.agent.compute_entropy()
+                latent_entropy *= self.entropy_coef
+                kl_loss -= latent_entropy # subtract as we want to maximize the entropy
+
             kl_loss.backward(retain_graph=True)
 
         # qf and encoder update (note encoder does not get grads from policy or vf)
@@ -355,6 +367,9 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
                 self.eval_statistics['Mean Reward'] = extrinsic_rewards.mean().cpu().item()
                 self.eval_statistics['Decoder Loss'] = decoder_loss.cpu().item()
                 self.eval_statistics['Mean Intrinsic Reward'] = intrinsic_reward.mean().cpu().item()
+
+            if self.maximize_entropy:
+                self.eval_statistics['Latent Entropy'] = latent_entropy.cpu().item()
 
     def get_epoch_snapshot(self, epoch):
         # NOTE: overriding parent method which also optionally saves the env

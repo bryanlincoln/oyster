@@ -16,7 +16,6 @@ default_config = dict(
     env_params=dict(
         n_tasks=2, # number of distinct tasks in this domain, shoudl equal sum of train and eval tasks
         randomize_tasks=True, # shuffle the tasks after creating them
-        n_train_tasks=1 # necessary if sampling test tasks out of distribution
     ),
     algo_params=dict(
         meta_batch=16, # number of tasks to average the gradient across
@@ -48,6 +47,9 @@ default_config = dict(
         num_exp_traj_eval=1, # how many exploration trajs to collect before beginning posterior sampling at test time
         recurrent=False, # recurrent or permutation-invariant encoder
         dump_eval_paths=False, # whether to save evaluation trajectories
+
+        maximize_entropy=False, # add inverse entropy loss to context encoder
+        entropy_coef=0.01
     ),
     util_params=dict(
         base_log_dir='output',
