@@ -99,6 +99,7 @@ def experiment(variant):
         use_curiosity=variant['curiosity_params']['use_curiosity'],
         pred_next_obs=variant['curiosity_params']['pred_next_obs'],
         curiosity_eta=variant['curiosity_params']['eta'],
+        add_intrinic_reward=variant['curiosity_params']['add_intrinic_reward'],
         fwd_lr=variant['curiosity_params']['fwd_lr'],
         **variant['algo_params']
     )

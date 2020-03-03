@@ -38,6 +38,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             render_eval_paths=False,
 
             use_curiosity=False,
+            add_intrinic_reward=True,
             pred_next_obs=False,
             curiosity_eta=0.01,
             fwd_lr=3e-5,
@@ -106,6 +107,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         self.use_curiosity = use_curiosity
         self.pred_next_obs = pred_next_obs
         self.curiosity_eta = curiosity_eta
+        self.add_intrinic_reward = add_intrinic_reward
 
         self.entropy_coef = entropy_coef
         self.maximize_entropy = maximize_entropy
@@ -246,7 +248,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             decoder_loss.backward(retain_graph=True)
             # add intrinsic_reward
             extrinsic_rewards = rewards.clone()
-            rewards += intrinsic_reward
+            if self.add_intrinic_reward:
+                rewards += intrinsic_reward
 
         # flattens out the task dimension
         t, b, _ = obs.size()
@@ -364,8 +367,9 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             ))
 
             if self.use_curiosity:
-                self.eval_statistics['Mean Reward'] = extrinsic_rewards.mean().cpu().item()
                 self.eval_statistics['Decoder Loss'] = decoder_loss.cpu().item()
+                self.eval_statistics['Mean Reward'] = rewards.mean().cpu().item()
+                self.eval_statistics['Mean Extrinsic Reward'] = extrinsic_rewards.mean().cpu().item()
                 self.eval_statistics['Mean Intrinsic Reward'] = intrinsic_reward.mean().cpu().item()
 
             if self.maximize_entropy:

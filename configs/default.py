@@ -9,6 +9,7 @@ default_config = dict(
     path_to_weights=None, # path to pre-trained weights to load into networks
     curiosity_params=dict(
         use_curiosity=True,
+        add_intrinic_reward=True,
         pred_next_obs=True,
         eta=0.01,
         fwd_lr=3e-5
