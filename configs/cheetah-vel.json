@@ -16,5 +16,8 @@
         "num_exp_traj_eval": 2,
         "embedding_batch_size": 100,
         "embedding_mini_batch_size": 100
+    },
+    "curiosity_params": {
+        "use_curiosity": true
     }
 }

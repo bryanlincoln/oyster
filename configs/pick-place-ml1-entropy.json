@@ -18,7 +18,9 @@
         "num_exp_traj_eval": 2,
         "embedding_batch_size": 256,
         "embedding_mini_batch_size": 256,
-        "max_path_length": 150
+        "max_path_length": 150,
+        "maximize_entropy": true,
+        "entropy_coef":0.01
     },
     "curiosity_params": {
         "use_curiosity": true,
