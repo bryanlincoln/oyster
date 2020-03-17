@@ -46,6 +46,9 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             entropy_coef=0.01,
             maximize_entropy=False,
 
+            use_l2_regularization=False,
+            lambda_l2=0.1,
+
             **kwargs
     ):
         super().__init__(
@@ -111,6 +114,9 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
 
         self.entropy_coef = entropy_coef
         self.maximize_entropy = maximize_entropy
+
+        self.use_l2_regularization = use_l2_regularization
+        self.lambda_l2 = lambda_l2
 
     ###### Torch stuff #####
     @property
@@ -277,6 +283,13 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
                 latent_entropy *= self.entropy_coef
                 kl_loss -= latent_entropy # subtract as we want to maximize the entropy
 
+            if self.use_l2_regularization:
+                l2 = 0
+                for p in self.agent.context_encoder.parameters():
+                    l2 += p.pow(2).sum()
+                l2 *= self.lambda_l2
+                kl_loss += l2
+
             kl_loss.backward(retain_graph=True)
 
         # qf and encoder update (note encoder does not get grads from policy or vf)
@@ -374,6 +387,9 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
 
             if self.maximize_entropy:
                 self.eval_statistics['Latent Entropy'] = latent_entropy.cpu().item()
+
+            if self.use_l2_regularization:
+                self.eval_statistics['L2 Loss'] = l2.cpu().item()
 
     def get_epoch_snapshot(self, epoch):
         # NOTE: overriding parent method which also optionally saves the env

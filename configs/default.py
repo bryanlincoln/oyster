@@ -16,6 +16,7 @@ default_config = dict(
     ),
     env_params=dict(
         n_tasks=2, # number of distinct tasks in this domain, shoudl equal sum of train and eval tasks
+        # n_train_tasks=2 # set this to use out of distribution tasks (cheetah-vel only)
         randomize_tasks=True, # shuffle the tasks after creating them
     ),
     algo_params=dict(
@@ -50,7 +51,10 @@ default_config = dict(
         dump_eval_paths=False, # whether to save evaluation trajectories
 
         maximize_entropy=False, # add inverse entropy loss to context encoder
-        entropy_coef=0.01
+        entropy_coef=0.01,
+
+        use_l2_regularization=False,
+        lambda_l2=0.1
     ),
     util_params=dict(
         base_log_dir='output',
