@@ -49,6 +49,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             use_l2_regularization=False,
             lambda_l2=0.1,
 
+            tbwriter=None,
+
             **kwargs
     ):
         super().__init__(
@@ -117,6 +119,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
 
         self.use_l2_regularization = use_l2_regularization
         self.lambda_l2 = lambda_l2
+
+        self.tbwriter = tbwriter
 
     ###### Torch stuff #####
     @property
@@ -220,6 +224,12 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         # run inference in networks
         policy_outputs, task_z, encoded_transitions, z = self.agent(obs, context)
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
+
+        if self.tbwriter is not None:
+            self.tbwriter.add_embedding(
+                z,
+                metadata=[self.env.tasks[idx] for idx in indices], # label batch
+            )
 
         if self.use_curiosity:
             if self.pred_next_obs:

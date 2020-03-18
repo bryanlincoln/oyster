@@ -9,6 +9,8 @@ import click
 import json
 import torch
 
+from tensorboardX import SummaryWriter
+
 from rlkit.envs import ENVS
 from rlkit.envs.wrappers import NormalizedBoxEnv
 from rlkit.torch.sac.policies import TanhGaussianPolicy
@@ -21,6 +23,8 @@ from configs.default import default_config
 
 
 def experiment(variant):
+
+    writer = SummaryWriter(comment='TaskEmbeddings')
 
     # create multi-task environment and sample tasks
     env = NormalizedBoxEnv(ENVS[variant['env_name']](**variant['env_params']))
@@ -101,6 +105,7 @@ def experiment(variant):
         curiosity_eta=variant['curiosity_params']['eta'],
         add_intrinic_reward=variant['curiosity_params']['add_intrinic_reward'],
         fwd_lr=variant['curiosity_params']['fwd_lr'],
+        tbwriter=writer,
         **variant['algo_params']
     )
 
@@ -136,6 +141,8 @@ def experiment(variant):
 
     # run the algorithm
     algorithm.train()
+
+    writer.close()
 
 def deep_update_dict(fr, to):
     ''' update dict of dicts with new values '''
