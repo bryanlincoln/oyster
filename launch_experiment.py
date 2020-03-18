@@ -8,6 +8,7 @@ import numpy as np
 import click
 import json
 import torch
+from datetime import datetime
 
 from tensorboardX import SummaryWriter
 
@@ -24,7 +25,7 @@ from configs.default import default_config
 
 def experiment(variant):
 
-    writer = SummaryWriter(comment='TaskEmbeddings')
+    writer = SummaryWriter(comment='TaskEmbeddings', logdir='runs/' + variant['env_name'] + '_' + str(datetime.now()))
 
     # create multi-task environment and sample tasks
     env = NormalizedBoxEnv(ENVS[variant['env_name']](**variant['env_params']))

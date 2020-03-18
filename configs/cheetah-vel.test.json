@@ -12,15 +12,11 @@
         "num_steps_prior": 400,
         "num_steps_posterior": 0,
         "num_extra_rl_steps_posterior": 600,
-        "num_evals": 1,
+        "num_evals": 5,
         "num_steps_per_eval": 600,
-        "num_exp_traj_eval": 2,
+        "num_exp_traj_eval": 1,
         "embedding_batch_size": 100,
         "embedding_mini_batch_size": 100
-    },
-    "curiosity_params": {
-        "use_curiosity": true,
-        "pred_next_obs": false
     },
     "path_to_weights": "output/cheetah-vel/2020_03_16_21_20_07"
 }

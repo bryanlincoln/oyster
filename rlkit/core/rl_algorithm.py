@@ -4,6 +4,7 @@ import time
 
 import gtimer as gt
 import numpy as np
+import torch
 
 from rlkit.core import logger, eval_util
 from rlkit.data_management.env_replay_buffer import MultiTaskReplayBuffer
@@ -47,6 +48,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             render_eval_paths=False,
             dump_eval_paths=False,
             plotter=None,
+            tbwriter=None
     ):
         """
         :param env: training env
@@ -123,6 +125,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
         self._exploration_paths = []
 
         self.notifier = FCMNotifier()
+        self.tbwriter = tbwriter
 
     def make_exploration_policy(self, policy):
          return policy
@@ -348,7 +351,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             data_to_save['algorithm'] = self
         return data_to_save
 
-    def collect_paths(self, idx, epoch, run):
+    def collect_paths(self, idx, epoch, run, log_embedding=False, eval=False):
         self.task_idx = idx
         self.env.reset_task(idx)
 
@@ -356,6 +359,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
         paths = []
         num_transitions = 0
         num_trajs = 0
+        embeddings = []
         while num_transitions < self.num_steps_per_eval:
             path, num = self.sampler.obtain_samples(deterministic=self.eval_deterministic, max_samples=self.num_steps_per_eval - num_transitions, max_trajs=1, accum_context=True)
             paths += path
@@ -363,6 +367,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             num_trajs += 1
             if num_trajs >= self.num_exp_traj_eval:
                 self.agent.infer_posterior(self.agent.context)
+                embeddings.append(self.agent.z.detach().cpu())
 
         if self.sparse_rewards:
             for p in paths:
@@ -377,15 +382,21 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
         if self.dump_eval_paths:
             logger.save_extra_data(paths, path='eval_trajectories/task{}-epoch{}-run{}'.format(idx, epoch, run))
 
-        return paths
+        #               (1, 2, 1, 5)           =>          (1, 2, 5)
+        # [ [ tensor ], [ tensor ] ] => [ [ tensor, tensor ] ]
+        embeddings = np.stack(embeddings, axis=1)
+        return paths, embeddings
 
-    def _do_eval(self, indices, epoch):
+    def _do_eval(self, indices, epoch, eval=False):
         final_returns = []
         online_returns = []
+        all_embeddings = [] # [task, rollout, embedding]
         for idx in indices:
             all_rets = []
+            task_embeddings = []
             for r in range(self.num_evals):
-                paths = self.collect_paths(idx, epoch, r)
+                paths, embeddings = self.collect_paths(idx, epoch, r)
+                task_embeddings.append(embeddings)
                 all_rets.append([eval_util.get_average_returns([p]) for p in paths])
             final_returns.append(np.mean([a[-1] for a in all_rets]))
             # record online returns for the first n trajectories
@@ -393,9 +404,11 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             all_rets = [a[:n] for a in all_rets]
             all_rets = np.mean(np.stack(all_rets), axis=0) # avg return per nth rollout
             online_returns.append(all_rets)
+            task_embeddings = np.mean(np.stack(task_embeddings), axis=0) # avg embedding per nth rollout
+            all_embeddings.append(task_embeddings)
         n = min([len(t) for t in online_returns])
         online_returns = [t[:n] for t in online_returns]
-        return final_returns, online_returns
+        return final_returns, online_returns, np.array(all_embeddings).squeeze()
 
     def evaluate(self, epoch):
         if self.eval_statistics is None:
@@ -438,15 +451,36 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             train_returns.append(eval_util.get_average_returns(paths))
         train_returns = np.mean(train_returns)
         ### eval train tasks with on-policy data to match eval of test tasks
-        train_final_returns, train_online_returns = self._do_eval(indices, epoch)
+        train_final_returns, train_online_returns, train_embeddings = self._do_eval(indices, epoch, eval=False)
         eval_util.dprint('train online returns')
         eval_util.dprint(train_online_returns)
 
         ### test tasks
         eval_util.dprint('evaluating on {} test tasks'.format(len(self.eval_tasks)))
-        test_final_returns, test_online_returns = self._do_eval(self.eval_tasks, epoch)
+        test_final_returns, test_online_returns, test_embeddings = self._do_eval(self.eval_tasks, epoch, eval=True)
         eval_util.dprint('test online returns')
         eval_util.dprint(test_online_returns)
+
+        if self.tbwriter is not None:
+            embeddings = np.concatenate((train_embeddings, test_embeddings), axis=0)
+            embeddings = np.transpose(embeddings, (1, 0, 2))
+
+            labels = []
+            for task_index in range(embeddings.shape[1]):
+                if task_index < len(indices):
+                    label = self.env.tasks[indices[task_index]]
+                    label['stage'] = 'train'
+                else:
+                    label = self.env.tasks[self.eval_tasks[task_index - len(indices)]]
+                    label['stage'] = 'eval'
+                labels.append(label)
+
+            for rollout, task_embedding in enumerate(embeddings):
+                self.tbwriter.add_embedding(
+                    task_embedding,
+                    metadata=labels,
+                    global_step=rollout
+                )
 
         # save the final posterior
         self.agent.log_diagnostics(self.eval_statistics)
