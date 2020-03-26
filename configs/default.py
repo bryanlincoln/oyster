@@ -7,6 +7,10 @@ default_config = dict(
     latent_size=5, # dimension of the latent context vector
     net_size=300, # number of units per FC layer in each network
     path_to_weights=None, # path to pre-trained weights to load into networks
+    context_params=dict(
+        use_dropout=False,
+        dropout_p=0.5
+    ),
     curiosity_params=dict(
         use_curiosity=False,
         add_intrinic_reward=True,

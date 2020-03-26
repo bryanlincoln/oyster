@@ -46,6 +46,8 @@ def experiment(variant):
         hidden_sizes=[200, 200, 200],
         input_size=context_encoder_input_dim,
         output_size=context_encoder_output_dim,
+        dropout=variant['context_params']['use_dropout'],
+        dropout_p=variant['context_params']['dropout_p']
     )
 
     # decoder takes in encoder output (latent state) and outputs context
