@@ -51,6 +51,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
 
             tbwriter=None,
 
+            normalize_rewards=False,
+
             **kwargs
     ):
         super().__init__(
@@ -120,6 +122,8 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
 
         self.use_l2_regularization = use_l2_regularization
         self.lambda_l2 = lambda_l2
+
+        self.normalize_rewards = normalize_rewards
 
 
     ###### Torch stuff #####
@@ -222,7 +226,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         obs, actions, rewards, next_obs, terms = self.sample_sac(indices)
 
         # run inference in networks
-        policy_outputs, task_z, encoded_transitions, z = self.agent(obs, context)
+        policy_outputs, task_z, z = self.agent(obs, context)
         new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
 
         if self.use_curiosity:
@@ -281,6 +285,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         if self.use_information_bottleneck:
             kl_div = self.agent.compute_kl_div()
             kl_loss = self.kl_lambda * kl_div
+            original_kl_loss = kl_loss.clone()
 
             if self.maximize_entropy:
                 latent_entropy = self.agent.compute_entropy()
@@ -288,11 +293,11 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
                 kl_loss -= latent_entropy # subtract as we want to maximize the entropy
 
             if self.use_l2_regularization:
-                l2 = 0
+                l2_loss = 0
                 for p in self.agent.context_encoder.parameters():
-                    l2 += p.pow(2).sum()
-                l2 *= self.lambda_l2
-                kl_loss += l2
+                    l2_loss += p.pow(2).sum()
+                l2_loss *= self.lambda_l2
+                kl_loss += l2_loss
 
             kl_loss.backward(retain_graph=True)
 
@@ -302,6 +307,9 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         rewards_flat = rewards.view(self.batch_size * num_tasks, -1)
         # scale rewards for Bellman update
         rewards_flat = rewards_flat * self.reward_scale
+        if self.normalize_rewards:
+            rewards_flat -= torch.mean(rewards_flat)
+            rewards_flat /= torch.std(rewards_flat)
         terms_flat = terms.view(self.batch_size * num_tasks, -1)
         q_target = rewards_flat + (1. - terms_flat) * self.discount * target_v_values
         qf_loss = torch.mean((q1_pred - q_target) ** 2) + torch.mean((q2_pred - q_target) ** 2)
@@ -355,7 +363,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
                 self.eval_statistics['Z mean train'] = z_mean
                 self.eval_statistics['Z variance train'] = z_sig
                 self.eval_statistics['KL Divergence'] = ptu.get_numpy(kl_div)
-                self.eval_statistics['KL Loss'] = ptu.get_numpy(kl_loss)
+                self.eval_statistics['KL Loss'] = ptu.get_numpy(original_kl_loss)
 
             self.eval_statistics['QF Loss'] = np.mean(ptu.get_numpy(qf_loss))
             self.eval_statistics['VF Loss'] = np.mean(ptu.get_numpy(vf_loss))
@@ -384,16 +392,18 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             ))
 
             if self.use_curiosity:
-                self.eval_statistics['Decoder Loss'] = decoder_loss.cpu().item()
-                self.eval_statistics['Mean Reward'] = rewards.mean().cpu().item()
-                self.eval_statistics['Mean Extrinsic Reward'] = extrinsic_rewards.mean().cpu().item()
-                self.eval_statistics['Mean Intrinsic Reward'] = intrinsic_reward.mean().cpu().item()
+                self.eval_statistics['Decoder Loss'] = decoder_loss.cpu().detach().item()
+                self.eval_statistics['Mean Reward'] = rewards.mean().cpu().detach().item()
+                self.eval_statistics['Mean Extrinsic Reward'] = extrinsic_rewards.mean().cpu().detach().item()
+                self.eval_statistics['Mean Intrinsic Reward'] = intrinsic_reward.mean().cpu().detach().item()
 
             if self.maximize_entropy:
-                self.eval_statistics['Latent Entropy'] = latent_entropy.cpu().item()
+                self.eval_statistics['Latent Entropy'] = latent_entropy.cpu().detach().item()
 
             if self.use_l2_regularization:
-                self.eval_statistics['L2 Loss'] = l2.cpu().item()
+                self.eval_statistics['L2 Loss'] = l2_loss.cpu().detach().item()
+
+            self.eval_statistics['Encoder Loss'] = ptu.get_numpy(kl_loss + qf_loss)
 
     def get_epoch_snapshot(self, epoch):
         # NOTE: overriding parent method which also optionally saves the env

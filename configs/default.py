@@ -58,7 +58,9 @@ default_config = dict(
         entropy_coef=0.01,
 
         use_l2_regularization=False,
-        lambda_l2=0.1
+        lambda_l2=0.1,
+
+        normalize_rewards=False
     ),
     util_params=dict(
         base_log_dir='output',

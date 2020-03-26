@@ -18,6 +18,6 @@
         "embedding_mini_batch_size": 100,
 
         "use_l2_regularization": true,
-        "lambda_l2": 0.1
+        "lambda_l2": 0.01
     }
 }

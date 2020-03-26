@@ -166,7 +166,7 @@ class PEARLAgent(nn.Module):
 
     def forward(self, obs, context):
         ''' given context, get statistics under the current policy of a set of observations '''
-        encoded_transitions = self.infer_posterior(context)
+        self.infer_posterior(context)
 
         self.sample_z()
 
@@ -181,7 +181,7 @@ class PEARLAgent(nn.Module):
         in_ = torch.cat([obs, task_z.detach()], dim=1)
         policy_outputs = self.policy(in_, reparameterize=True, return_log_prob=True)
 
-        return policy_outputs, task_z, encoded_transitions, self.z
+        return policy_outputs, task_z, self.z
 
     def log_diagnostics(self, eval_statistics):
         '''

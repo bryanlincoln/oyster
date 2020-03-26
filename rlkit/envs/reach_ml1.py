@@ -4,15 +4,16 @@ from metaworld.benchmarks import ML1
 from . import register_env
 
 
-@register_env('pick-place-ml1')
+@register_env('reach-ml1')
 class ReachML1Env():
 
     def __init__(self, task={}, n_train_tasks=50, n_test_tasks=10, randomize_tasks=True, **kwargs):
-        self.train_env = ML1.get_train_tasks('pick-place-v1')
-        self.test_env = ML1.get_test_tasks('pick-place-v1')
+        self.train_env = ML1.get_train_tasks('reach-v1')
+        self.test_env = ML1.get_test_tasks('reach-v1')
         self.train_tasks = self.train_env.sample_tasks(n_train_tasks)
         self.test_tasks = self.test_env.sample_tasks(n_test_tasks)
         self.tasks = self.train_tasks + self.test_tasks
+        print(self.tasks, self.train_tasks, self.test_tasks)
         self.env = self.train_env #this env will change depending on the idx
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
