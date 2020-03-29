@@ -1,0 +1,12 @@
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_02_16_00_49_55
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_02_17_18_09_55
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_03_03_16_20_26
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_03_04_17_23_41
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_03_05_23_41_01
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_03_06_13_23_33
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_03_07_17_09_05
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_03_07_23_12_39
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_03_17_00_33_59
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_03_26_04_30_37
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_03_26_04_34_42
+python launch_experiment.py ./configs/cheetah-vel.test.json --path_to_weights output/cheetah-vel/2020_03_27_00_51_58
