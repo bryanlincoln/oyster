@@ -367,7 +367,8 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             num_trajs += 1
             if num_trajs >= self.num_exp_traj_eval:
                 self.agent.infer_posterior(self.agent.context)
-                embeddings.append(self.agent.z.detach().cpu())
+                # fetch fist element since the batch (task) size is 1
+                embeddings.append(self.agent.z.detach().cpu().numpy()[0])
 
         if self.sparse_rewards:
             for p in paths:
@@ -382,10 +383,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
         if self.dump_eval_paths:
             logger.save_extra_data(paths, path='eval_trajectories/task{}-epoch{}-run{}'.format(idx, epoch, run))
 
-        #               (1, 2, 1, 5)           =>          (1, 2, 5)
-        # [ [ tensor ], [ tensor ] ] => [ [ tensor, tensor ] ]
-        embeddings = np.stack(embeddings, axis=1)
-        return paths, embeddings
+        return paths, np.array(embeddings) # [rollout, embedding]
 
     def _do_eval(self, indices, epoch, eval=False):
         final_returns = []
@@ -393,10 +391,10 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
         all_embeddings = [] # [task, rollout, embedding]
         for idx in indices:
             all_rets = []
-            task_embeddings = []
+            task_embeddings = [] # [eval, rolout, embedding]
             for r in range(self.num_evals):
                 paths, embeddings = self.collect_paths(idx, epoch, r)
-                task_embeddings.append(embeddings)
+                task_embeddings.append(embeddings) # evals
                 all_rets.append([eval_util.get_average_returns([p]) for p in paths])
             final_returns.append(np.mean([a[-1] for a in all_rets]))
             # record online returns for the first n trajectories
@@ -404,7 +402,8 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             all_rets = [a[:n] for a in all_rets]
             all_rets = np.mean(np.stack(all_rets), axis=0) # avg return per nth rollout
             online_returns.append(all_rets)
-            task_embeddings = np.mean(np.stack(task_embeddings), axis=0) # avg embedding per nth rollout
+            task_embeddings = np.stack(task_embeddings)
+            # task_embeddings = np.mean(task_embeddings, axis=0) # avg embedding per nth rollout
             all_embeddings.append(task_embeddings)
         n = min([len(t) for t in online_returns])
         online_returns = [t[:n] for t in online_returns]
@@ -462,22 +461,40 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
         eval_util.dprint(test_online_returns)
 
         if self.tbwriter is not None:
+            # [train + eval tasks, evals, rollouts, embeddings]
             embeddings = np.concatenate((train_embeddings, test_embeddings), axis=0)
-            embeddings = np.transpose(embeddings, (1, 0, 2))
 
+            # tasks labels
             labels = []
-            for task_index in range(embeddings.shape[1]):
+            # for each task, including train and test
+            for task_index in range(len(embeddings)):
                 if task_index < len(indices):
+                    stage = "train"
                     label = self.env.tasks[indices[task_index]]
-                    label['stage'] = 'train'
                 else:
+                    stage = "eval"
                     label = self.env.tasks[self.eval_tasks[task_index - len(indices)]]
-                    label['stage'] = 'eval'
-                labels.append(label)
 
-            for rollout, task_embedding in enumerate(embeddings):
+                # cheetah-vel specific
+                if type(label) is dict:
+                    label['stage'] = stage
+
+                # concat labels array with current task label
+                # repeated for the number of task evals
+                labels += [label] * len(embeddings[task_index])
+
+            # [rollouts, train + eval tasks, evals, embeddings]
+            embeddings = np.transpose(embeddings, (2, 0, 1, 3))
+            embeddings = np.reshape(embeddings, (
+                embeddings.shape[0], # rollouts
+                -1, # stack all eval embeddings, task over task
+                embeddings.shape[3], # embedding dimension
+            ))
+
+            # for each rollout, save embeddings and their labels
+            for rollout, tasks_embeddings in enumerate(embeddings):
                 self.tbwriter.add_embedding(
-                    task_embedding,
+                    tasks_embeddings,
                     metadata=labels,
                     global_step=rollout
                 )

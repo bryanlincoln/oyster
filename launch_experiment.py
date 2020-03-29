@@ -24,8 +24,22 @@ from configs.default import default_config
 
 
 def experiment(variant):
+    # debugging triggers a lot of printing and logs to a debug directory
+    DEBUG = variant['util_params']['debug']
+    os.environ['DEBUG'] = str(int(DEBUG))
 
-    writer = SummaryWriter(comment='TaskEmbeddings', logdir='runs/' + variant['env_name'] + '_' + str(datetime.now()))
+    # create logging directory
+    # TODO support Docker
+    exp_id = 'debug' if DEBUG else None
+    experiment_log_dir = setup_logger(variant['env_name'], variant=variant, exp_id=exp_id, base_log_dir=variant['util_params']['base_log_dir'])
+
+    writer = SummaryWriter(
+        comment='TaskEmbeddings',
+        logdir=os.path.join(
+            variant['path_to_weights'] if variant['path_to_weights'] is not None else experiment_log_dir,
+            'embeddings'
+        )
+    )
 
     # create multi-task environment and sample tasks
     env = NormalizedBoxEnv(ENVS[variant['env_name']](**variant['env_params']))
@@ -119,23 +133,13 @@ def experiment(variant):
         qf1.load_state_dict(torch.load(os.path.join(path, 'qf1.pth')))
         qf2.load_state_dict(torch.load(os.path.join(path, 'qf2.pth')))
         vf.load_state_dict(torch.load(os.path.join(path, 'vf.pth')))
-        # TODO hacky, revisit after model refactor
-        algorithm.networks[-2].load_state_dict(torch.load(os.path.join(path, 'target_vf.pth')))
+        algorithm.target_vf.load_state_dict(torch.load(os.path.join(path, 'target_vf.pth')))
         policy.load_state_dict(torch.load(os.path.join(path, 'policy.pth')))
 
     # optional GPU mode
     ptu.set_gpu_mode(variant['util_params']['use_gpu'], variant['util_params']['gpu_id'])
     if ptu.gpu_enabled():
         algorithm.to()
-
-    # debugging triggers a lot of printing and logs to a debug directory
-    DEBUG = variant['util_params']['debug']
-    os.environ['DEBUG'] = str(int(DEBUG))
-
-    # create logging directory
-    # TODO support Docker
-    exp_id = 'debug' if DEBUG else None
-    experiment_log_dir = setup_logger(variant['env_name'], variant=variant, exp_id=exp_id, base_log_dir=variant['util_params']['base_log_dir'])
 
     # optionally save eval trajectories as pkl files
     if variant['algo_params']['dump_eval_paths']:
@@ -162,7 +166,8 @@ def deep_update_dict(fr, to):
 @click.option('--gpu', default=0)
 @click.option('--docker', is_flag=True, default=False)
 @click.option('--debug', is_flag=True, default=False)
-def main(config, gpu, docker, debug):
+@click.option('--path_to_weights', default=None)
+def main(config, gpu, docker, debug, path_to_weights):
 
     variant = default_config
     if config:
@@ -170,6 +175,8 @@ def main(config, gpu, docker, debug):
             exp_params = json.load(f)
         variant = deep_update_dict(exp_params, variant)
     variant['util_params']['gpu_id'] = gpu
+    if path_to_weights is not None:
+        variant['path_to_weights'] = path_to_weights
 
     experiment(variant)
 
