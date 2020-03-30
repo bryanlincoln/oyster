@@ -407,7 +407,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             all_embeddings.append(task_embeddings)
         n = min([len(t) for t in online_returns])
         online_returns = [t[:n] for t in online_returns]
-        return final_returns, online_returns, np.array(all_embeddings).squeeze()
+        return final_returns, online_returns, np.array(all_embeddings)
 
     def evaluate(self, epoch):
         if self.eval_statistics is None:
