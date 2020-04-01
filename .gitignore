@@ -21,5 +21,6 @@ __pycache__
 
 /output
 /output/**
+/output*
 
 runs/

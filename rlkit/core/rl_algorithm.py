@@ -389,6 +389,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
         final_returns = []
         online_returns = []
         all_embeddings = [] # [task, rollout, embedding]
+        all_paths = []
         for idx in indices:
             all_rets = []
             task_embeddings = [] # [eval, rolout, embedding]
@@ -396,6 +397,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
                 paths, embeddings = self.collect_paths(idx, epoch, r)
                 task_embeddings.append(embeddings) # evals
                 all_rets.append([eval_util.get_average_returns([p]) for p in paths])
+                all_paths.append(paths)
             final_returns.append(np.mean([a[-1] for a in all_rets]))
             # record online returns for the first n trajectories
             n = min([len(a) for a in all_rets])
@@ -407,7 +409,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             all_embeddings.append(task_embeddings)
         n = min([len(t) for t in online_returns])
         online_returns = [t[:n] for t in online_returns]
-        return final_returns, online_returns, np.array(all_embeddings)
+        return final_returns, online_returns, np.array(all_embeddings), all_paths
 
     def evaluate(self, epoch):
         if self.eval_statistics is None:
@@ -450,15 +452,17 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             train_returns.append(eval_util.get_average_returns(paths))
         train_returns = np.mean(train_returns)
         ### eval train tasks with on-policy data to match eval of test tasks
-        train_final_returns, train_online_returns, train_embeddings = self._do_eval(indices, epoch, eval=False)
+        train_final_returns, train_online_returns, train_embeddings, train_paths = self._do_eval(indices, epoch, eval=False)
         eval_util.dprint('train online returns')
         eval_util.dprint(train_online_returns)
+        eval_util.get_env_agent_path_information(train_paths, self.eval_statistics, 'train')
 
         ### test tasks
         eval_util.dprint('evaluating on {} test tasks'.format(len(self.eval_tasks)))
-        test_final_returns, test_online_returns, test_embeddings = self._do_eval(self.eval_tasks, epoch, eval=True)
+        test_final_returns, test_online_returns, test_embeddings, eval_paths = self._do_eval(self.eval_tasks, epoch, eval=True)
         eval_util.dprint('test online returns')
         eval_util.dprint(test_online_returns)
+        eval_util.get_env_agent_path_information(eval_paths, self.eval_statistics, 'test')
 
         if self.tbwriter is not None:
             # [train + eval tasks, evals, rollouts, embeddings]

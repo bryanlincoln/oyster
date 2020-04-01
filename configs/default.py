@@ -20,7 +20,8 @@ default_config = dict(
     ),
     env_params=dict(
         n_tasks=2, # number of distinct tasks in this domain, shoudl equal sum of train and eval tasks
-        # n_train_tasks=2 # set this to use out of distribution tasks (cheetah-vel only)
+        # n_train_tasks=2 # set this to use out of distribution tasks (cheetah-vel and metaworld only)
+        # out_of_distribution=True, # set this to use out of distribution tasks (cheetah-vel and metaworld only)
         randomize_tasks=True, # shuffle the tasks after creating them
     ),
     algo_params=dict(
@@ -33,7 +34,7 @@ default_config = dict(
         num_extra_rl_steps_posterior=400, # number of additional transitions to collect per task with z ~ posterior that are only used to train the policy and NOT the encoder
         num_train_steps_per_itr=2000, # number of meta-gradient steps taken per iteration
         num_evals=2, # number of independent evals
-        num_steps_per_eval=600,  # nuumber of transitions to eval on
+        num_steps_per_eval=600,  # number of transitions to eval on
         batch_size=256, # number of transitions in the RL batch
         embedding_batch_size=64, # number of transitions in the context batch
         embedding_mini_batch_size=64, # number of context transitions to backprop through (should equal the arg above except in the recurrent encoder case)
