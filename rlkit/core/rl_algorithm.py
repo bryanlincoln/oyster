@@ -48,7 +48,10 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             render_eval_paths=False,
             dump_eval_paths=False,
             plotter=None,
-            tbwriter=None
+            tbwriter=None,
+            num_epochs_to_skip_eval=0,
+            plot_embeddings=False,
+            embedding_plotter=None
     ):
         """
         :param env: training env
@@ -126,6 +129,12 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
 
         self.notifier = FCMNotifier()
         self.tbwriter = tbwriter
+
+        self.num_epochs_to_skip_eval = num_epochs_to_skip_eval
+        self.num_epochs_skipped_eval = 0
+
+        self.plot_embeddings = plot_embeddings
+        self.embedding_plotter = embedding_plotter
 
     def make_exploration_policy(self, policy):
          return policy
@@ -293,8 +302,13 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
 
         :return:
         """
-        # eval collects its own context, so can eval any time
-        return True
+        # -1 since we're counting from 0 (if num_epochs_to_skip_eval is e.g. 3, we'll skip for 0, 1 and 2)
+        if self.num_epochs_skipped_eval >= self.num_epochs_to_skip_eval - 1:
+            self.num_epochs_skipped_eval = 0
+            return True
+        else:
+            self.num_epochs_skipped_eval += 1
+            return False
 
     def _can_train(self):
         return all([self.replay_buffer.num_steps_can_sample(idx) >= self.batch_size for idx in self.train_tasks])
@@ -470,6 +484,11 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
 
             # tasks labels
             labels = []
+            if self.plot_embeddings:
+                tasks = {
+                    'train': [],
+                    'eval': []
+                }
             # for each task, including train and test
             for task_index in range(len(embeddings)):
                 if task_index < len(indices):
@@ -479,13 +498,26 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
                     stage = "eval"
                     label = self.env.tasks[self.eval_tasks[task_index - len(indices)]]
 
-                # cheetah-vel specific
                 if type(label) is dict:
                     label['stage'] = stage
+
+                    if self.plot_embeddings:
+                        if 'velocity' in label:
+                            tasks[stage] += [label['velocity']] * len(embeddings[task_index])
+                        elif 'goal' in label:
+                            tasks[stage] += [label['goal']] * len(embeddings[task_index])
 
                 # concat labels array with current task label
                 # repeated for the number of task evals
                 labels += [label] * len(embeddings[task_index])
+
+            if self.plot_embeddings and len(tasks['train']) > 0:
+                self.embedding_plotter(
+                    embeddings,
+                    tasks['train'],
+                    tasks['eval'],
+                    epoch
+                )
 
             # [rollouts, train + eval tasks, evals, embeddings]
             embeddings = np.transpose(embeddings, (2, 0, 1, 3))

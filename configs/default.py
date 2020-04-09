@@ -35,6 +35,7 @@ default_config = dict(
         num_train_steps_per_itr=2000, # number of meta-gradient steps taken per iteration
         num_evals=2, # number of independent evals
         num_steps_per_eval=600,  # number of transitions to eval on
+        num_epochs_to_skip_eval=0,  # number of epochs to skip eval
         batch_size=256, # number of transitions in the RL batch
         embedding_batch_size=64, # number of transitions in the context batch
         embedding_mini_batch_size=64, # number of context transitions to backprop through (should equal the arg above except in the recurrent encoder case)
@@ -61,7 +62,8 @@ default_config = dict(
         use_l2_regularization=False,
         lambda_l2=0.1,
 
-        normalize_rewards=False
+        normalize_rewards=False,
+        plot_embeddings=False # plot embeddings at evals
     ),
     util_params=dict(
         base_log_dir='output',

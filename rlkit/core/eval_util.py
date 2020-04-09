@@ -6,7 +6,10 @@ from collections import OrderedDict
 from numbers import Number
 import os
 import numpy as np
+
 from . import pythonplusplus as ppp
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 
 
 def dprint(*args):
@@ -128,3 +131,30 @@ def create_stats_ordered_dict(
         stats[name + ' Max'] = np.max(data)
         stats[name + ' Min'] = np.min(data)
     return stats
+
+def make_embedding_plotter(path):
+    def plot_embeddings(embeddings, tasks_train, tasks_eval, epoch):
+        tasks = np.concatenate((tasks_train, tasks_eval), axis=0)
+        embeddings = np.reshape(embeddings, (-1, embeddings.shape[-1])) # transform to [train_size + eval_size, embedding_size]
+
+        pca = PCA(n_components=2)
+        pca.fit(embeddings)
+        embeddings = pca.transform(embeddings)
+
+        embeddings_train = embeddings[:len(tasks_train), :]
+        embeddings_eval = embeddings[len(tasks_train):, :]
+
+        plt.scatter(embeddings_train[:, 0], embeddings_train[:, 1], c=tasks_train, cmap='rainbow', marker="o", s=50, label='Train')
+        plt.clim(tasks.min(), tasks.max())
+        plt.scatter(embeddings_eval[:, 0], embeddings_eval[:, 1], c=tasks_eval, cmap='rainbow', marker="+", s=50, label='Eval')
+        plt.clim(tasks.min(), tasks.max())
+        plt.colorbar().set_label('Task', rotation=270)
+        plt.ylim(ymax=10, ymin=-10)
+        plt.xlim(xmax=10, xmin=-10)
+        plt.grid(color='gray', linestyle='dashed')
+        plt.grid(color='gray', linestyle='dashed')
+        plt.legend(loc='upper right')
+        plt.title('Epoch ' + str(epoch))
+        plt.savefig(os.path.join(path, 'epoch_{}.eps'.format(epoch)), format='eps')
+
+    return plot_embeddings

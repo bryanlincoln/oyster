@@ -22,6 +22,8 @@ from rlkit.launchers.launcher_util import setup_logger
 import rlkit.torch.pytorch_util as ptu
 from configs.default import default_config
 
+from rlkit.core import eval_util
+
 
 def experiment(variant):
     # debugging triggers a lot of printing and logs to a debug directory
@@ -123,6 +125,7 @@ def experiment(variant):
         add_intrinic_reward=variant['curiosity_params']['add_intrinic_reward'],
         fwd_lr=variant['curiosity_params']['fwd_lr'],
         tbwriter=writer,
+        embedding_plotter=eval_util.make_embedding_plotter(experiment_log_dir),
         **variant['algo_params']
     )
 
