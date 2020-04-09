@@ -16,6 +16,8 @@ class ReachML1Env():
         self.env = self.train_env #this env will change depending on the idx
         self.observation_space = self.env.observation_space
         self.action_space = self.env.action_space
+        self.goal_space_origin = np.array([0, 0.85, 0.175])
+        self.get_tasks_goals()
         self.reset_task(0)
 
     def step(self, action):
@@ -44,4 +46,9 @@ class ReachML1Env():
 
     def render(self):
         self.env.render()
-
+    
+    def get_tasks_goals(self):
+        for idx in range(len(self.tasks)):
+            self.reset_task(idx)
+            _, _, _, info = self.step(self.action_space.sample())
+            self.tasks[idx]['goal_pos'] = info['goal']

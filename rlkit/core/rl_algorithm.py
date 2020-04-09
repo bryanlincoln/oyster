@@ -504,8 +504,10 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
                     if self.plot_embeddings:
                         if 'velocity' in label:
                             tasks[stage] += [label['velocity']] * len(embeddings[task_index])
-                        elif 'goal' in label:
-                            tasks[stage] += [label['goal']] * len(embeddings[task_index])
+                        elif 'goal_pos' in label:
+                            tasks[stage] += [
+                                np.linalg.norm(label['goal_pos'] - self.env.goal_space_origin) # distance to origin
+                            ] * len(embeddings[task_index])
 
                 # concat labels array with current task label
                 # repeated for the number of task evals

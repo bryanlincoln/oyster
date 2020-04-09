@@ -149,12 +149,13 @@ def make_embedding_plotter(path):
         plt.scatter(embeddings_eval[:, 0], embeddings_eval[:, 1], c=tasks_eval, cmap='rainbow', marker="+", s=50, label='Eval')
         plt.clim(tasks.min(), tasks.max())
         plt.colorbar().set_label('Task', rotation=270)
-        plt.ylim(ymax=10, ymin=-10)
-        plt.xlim(xmax=10, xmin=-10)
+        #plt.ylim(ymax=10, ymin=-10)
+        #plt.xlim(xmax=10, xmin=-10)
         plt.grid(color='gray', linestyle='dashed')
         plt.grid(color='gray', linestyle='dashed')
         plt.legend(loc='upper right')
         plt.title('Epoch ' + str(epoch))
         plt.savefig(os.path.join(path, 'epoch_{}.eps'.format(epoch)), format='eps')
+        plt.clf()
 
     return plot_embeddings
