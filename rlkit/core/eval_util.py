@@ -6,6 +6,7 @@ from collections import OrderedDict
 from numbers import Number
 import os
 import numpy as np
+from . import pythonplusplus as ppp
 
 
 def dprint(*args):
@@ -39,51 +40,39 @@ def get_generic_path_information(paths, stat_prefix=''):
     return statistics
 
 def get_env_agent_path_information(paths, statistics, stat_prefix=''):
-    # if success in path -> trajectory -> env_info -> success
-    if 'success' in paths[0][0]['env_infos'][0]:
-        successes = []
+    # paths[ trajectories [ env_info { success } ] ]
+    # for info_key in ['env_infos' , 'agent_infos']: # not really needed for now
+    info_key = 'env_infos'
+    if info_key in paths[0][0]: # if first trajectory of first path has info key
+        all_env_infos = []
         for path in paths:
             for trajectory in path:
-                successes.append(trajectory['env_infos'][-1]['success'])
-        statistics.update(create_stats_ordered_dict(
-            stat_prefix + '/success',
-            np.array(successes),
-            stat_prefix='{}/'.format('env_infos'),
-        ))
+                all_env_infos.append(
+                    ppp.list_of_dicts_to_dict_of_lists(
+                        trajectory[info_key],
+                        ['reachDist', 'goalDist', 'pickRew', 'epRew', 'success']
+                    )
+                )
 
-    """ TODO add more statistics
-    for info_key in ['env_infos', 'agent_infos']:
-        # if key exists in at least one path, it exists in all of them
-        if info_key in paths[0]:
-            # convert a list (each path) of dicts (path's info)
-            # to a dict (info) of lists (info about all paths)
-            all_env_infos = {}
-            for path in paths:
-                for info in path[info_key]:
-                    if type(all_env_infos[info]) is list:
-                        all_env_infos[info].append(path[info_key][info])
-                    else:
-                        all_env_infos[info] = [path[info_key][info]]
-            for k in all_env_infos.keys():
-                final_ks = np.array([info[k][-1] for info in all_env_infos])
-                first_ks = np.array([info[k][0] for info in all_env_infos])
-                all_ks = np.concatenate([info[k] for info in all_env_infos])
-                statistics.update(create_stats_ordered_dict(
-                    stat_prefix + k,
-                    final_ks,
-                    stat_prefix='{}/final/'.format(info_key),
-                ))
-                statistics.update(create_stats_ordered_dict(
-                    stat_prefix + k,
-                    first_ks,
-                    stat_prefix='{}/initial/'.format(info_key),
-                ))
-                statistics.update(create_stats_ordered_dict(
-                    stat_prefix + k,
-                    all_ks,
-                    stat_prefix='{}/'.format(info_key),
-                ))
-            """
+        for k in all_env_infos[0].keys():
+            final_ks = np.array([info[k][-1] for info in all_env_infos])
+            first_ks = np.array([info[k][0] for info in all_env_infos])
+            all_ks = np.concatenate([info[k] for info in all_env_infos])
+            statistics.update(create_stats_ordered_dict(
+                stat_prefix + '/' + k,
+                final_ks,
+                stat_prefix='{}/final/'.format(info_key),
+            ))
+            statistics.update(create_stats_ordered_dict(
+                stat_prefix + '/' + k,
+                first_ks,
+                stat_prefix='{}/initial/'.format(info_key),
+            ))
+            statistics.update(create_stats_ordered_dict(
+                stat_prefix + '/' + k,
+                all_ks,
+                stat_prefix='{}/'.format(info_key),
+            ))
 
     return statistics
 
