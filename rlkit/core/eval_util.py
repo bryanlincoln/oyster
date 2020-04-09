@@ -156,6 +156,7 @@ def make_embedding_plotter(path):
         plt.legend(loc='upper right')
         plt.title('Epoch ' + str(epoch))
         plt.savefig(os.path.join(path, 'epoch_{}.eps'.format(epoch)), format='eps')
+        plt.savefig(os.path.join(path, 'epoch_{}.png'.format(epoch)), format='png')
         plt.clf()
 
     return plot_embeddings
