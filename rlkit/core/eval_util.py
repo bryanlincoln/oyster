@@ -49,13 +49,12 @@ def get_env_agent_path_information(paths, statistics, stat_prefix=''):
     if info_key in paths[0][0]: # if first trajectory of first path has info key
         all_env_infos = []
         for path in paths:
-            for trajectory in path:
-                all_env_infos.append(
-                    ppp.list_of_dicts_to_dict_of_lists(
-                        trajectory[info_key],
-                        ['reachDist', 'goalDist', 'pickRew', 'epRew', 'success']
-                    )
+            all_env_infos.append(
+                ppp.list_of_dicts_to_dict_of_lists(
+                    path[-1][info_key], # log only the last trajectory of this path (most posterior Z)
+                    ['reachDist', 'goalDist', 'pickRew', 'epRew', 'success']
                 )
+            )
 
         for k in all_env_infos[0].keys():
             final_ks = np.array([info[k][-1] for info in all_env_infos])
