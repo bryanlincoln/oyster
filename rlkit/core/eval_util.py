@@ -7,6 +7,7 @@ from numbers import Number
 import os
 import numpy as np
 
+import pickle
 from . import pythonplusplus as ppp
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
@@ -49,13 +50,12 @@ def get_env_agent_path_information(paths, statistics, stat_prefix=''):
     if info_key in paths[0][0]: # if first trajectory of first path has info key
         all_env_infos = []
         for path in paths:
-            for trajectory in path:
-                all_env_infos.append(
-                    ppp.list_of_dicts_to_dict_of_lists(
-                        trajectory[info_key],
-                        ['reachDist', 'goalDist', 'pickRew', 'epRew', 'success']
-                    )
+            all_env_infos.append(
+                ppp.list_of_dicts_to_dict_of_lists(
+                    path[-1][info_key], # log only the last trajectory of this path (most posterior Z)
+                    ['reachDist', 'goalDist', 'pickRew', 'epRew', 'success']
                 )
+            )
 
         for k in all_env_infos[0].keys():
             final_ks = np.array([info[k][-1] for info in all_env_infos])
@@ -155,8 +155,17 @@ def make_embedding_plotter(path):
         plt.grid(color='gray', linestyle='dashed')
         plt.legend(loc='upper right')
         plt.title('Epoch ' + str(epoch))
-        plt.savefig(os.path.join(path, 'epoch_{}.eps'.format(epoch)), format='eps')
-        plt.savefig(os.path.join(path, 'epoch_{}.png'.format(epoch)), format='png')
+        plt.savefig(os.path.join(path, 'embeddings_epoch_{}.png'.format(epoch)), format='png')
         plt.clf()
+
+        with open('embeddings_epoch_{}.png'.format(epoch), 'wb') as embeddings_file:
+            pickle.dump({
+                'embeddings_train': embeddings_train,
+                'embeddings_eval': embeddings_eval,
+                'tasks': tasks,
+                'tasks_train': tasks_train,
+                'tasks_eval': tasks_eval,
+                'epoch': epoch
+            }, embeddings_file)
 
     return plot_embeddings
