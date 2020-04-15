@@ -133,16 +133,25 @@ def create_stats_ordered_dict(
     return stats
 
 def make_embedding_plotter(path):
-    def plot_embeddings(embeddings, tasks_train, tasks_eval, epoch):
-        tasks = np.concatenate((tasks_train, tasks_eval), axis=0)
-        embeddings = np.reshape(embeddings, (-1, embeddings.shape[-1])) # transform to [train_size + eval_size, embedding_size]
+    def plot_embeddings(embeddings, tasks, num_train_tasks, epoch):
+        # normalize between 0~1
+        tasks -= tasks.min()
+        if tasks.max() - tasks.min() > 0:  # avoid division by zero
+            tasks /= tasks.max() - tasks.min()
+        elif tasks.max() != 0:  # avoid having tasks greater than 1
+            tasks /= tasks.max()
+
+        # transform to [train_size + eval_size, embedding_size]
+        embeddings = np.reshape(embeddings, (-1, embeddings.shape[-1]))
 
         pca = PCA(n_components=2)
         pca.fit(embeddings)
         embeddings = pca.transform(embeddings)
 
-        embeddings_train = embeddings[:len(tasks_train), :]
-        embeddings_eval = embeddings[len(tasks_train):, :]
+        embeddings_train = embeddings[num_train_tasks:, :]
+        embeddings_eval = embeddings[:num_train_tasks, :]
+        tasks_train = tasks[num_train_tasks:]
+        tasks_eval = tasks[:num_train_tasks]
 
         plt.scatter(embeddings_train[:, 0], embeddings_train[:, 1], c=tasks_train, cmap='rainbow', marker="o", s=50, label='Train')
         plt.clim(tasks.min(), tasks.max())
@@ -158,13 +167,11 @@ def make_embedding_plotter(path):
         plt.savefig(os.path.join(path, 'embeddings_epoch_{}.png'.format(epoch)), format='png')
         plt.clf()
 
-        with open('embeddings_epoch_{}.png'.format(epoch), 'wb') as embeddings_file:
+        with open('embeddings_epoch_{}.pkl'.format(epoch), 'wb') as embeddings_file:
             pickle.dump({
-                'embeddings_train': embeddings_train,
-                'embeddings_eval': embeddings_eval,
+                'embeddings': embeddings,
                 'tasks': tasks,
-                'tasks_train': tasks_train,
-                'tasks_eval': tasks_eval,
+                'num_train_tasks': num_train_tasks,
                 'epoch': epoch
             }, embeddings_file)
 

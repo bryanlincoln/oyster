@@ -1,24 +1,26 @@
+
 {
     "env_name": "reach-ml1",
-    "n_train_tasks": 3,
-    "n_eval_tasks": 1,
+    "n_train_tasks": 50,
+    "n_eval_tasks": 10,
     "env_params": {
-        "n_train_tasks": 3,
-        "n_test_tasks": 1,
-        "n_tasks": 4,
-        "out_of_distribution": true
+        "n_train_tasks": 50,
+        "n_test_tasks": 10,
+        "n_tasks": 60
     },
     "algo_params": {
+        "num_iterations": 1,
         "num_initial_steps": 1,
         "num_steps_prior": 1,
-        "num_steps_posterior": 1,
+        "num_steps_posterior": 0,
         "num_extra_rl_steps_posterior": 1,
-        "num_train_steps_per_itr": 10,
+        "num_train_steps_per_itr": 1,
         "num_evals": 2,
         "num_steps_per_eval": 150,
         "num_exp_traj_eval": 1,
-        "embedding_batch_size": 1,
-        "embedding_mini_batch_size": 1,
+        "num_epochs_to_skip_eval": 0,
+        "embedding_batch_size": 256,
+        "embedding_mini_batch_size": 256,
         "max_path_length": 150,
         "plot_embeddings": true
     }
