@@ -22,7 +22,7 @@
         "embedding_batch_size": 256,
         "embedding_mini_batch_size": 256,
         "max_path_length": 150,
-        "plot_embeddings": true,
+        "plot_embeddings": false,
 
         "use_l2_regularization": true,
         "lambda_l2": 0.01
