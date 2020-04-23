@@ -505,6 +505,8 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
                                 np.linalg.norm(label['goal_pos'] - self.env.goal_space_origin) # distance to origin
                             ] * len(embeddings[task_index])
 
+                            label["goal_pos"] = label["goal_pos"].tolist() # remove np array notation
+
                 # concat labels array with current task label
                 # repeated for the number of task evals
                 labels += [label] * len(embeddings[task_index])
