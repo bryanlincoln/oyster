@@ -487,6 +487,8 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             tasks = []
             # for each task, including train and test
             for task_index in range(len(embeddings)):
+                num_evals = len(embeddings[task_index])
+
                 if task_index < len(indices):
                     stage = "train"
                     label = self.env.tasks[indices[task_index]]
@@ -498,23 +500,23 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
                     label['stage'] = stage
 
                     if self.plot_embeddings:
+
                         if 'velocity' in label:
-                            tasks += [label['velocity']] * len(embeddings[task_index])
+                            tasks += [label['velocity']] * num_evals
                         elif 'goal_pos' in label:
                             tasks += [
                                 np.linalg.norm(label['goal_pos'] - self.env.goal_space_origin) # distance to origin
-                            ] * len(embeddings[task_index])
-
-                            label["goal_pos"] = label["goal_pos"].tolist() # remove np array notation
+                            ] * num_evals
 
                 # concat labels array with current task label
                 # repeated for the number of task evals
-                labels += [label] * len(embeddings[task_index])
+                labels += [label] * num_evals
 
             if self.plot_embeddings and len(tasks) > 0:
                 self.embedding_plotter(
                     embeddings,
-                    np.array(tasks),
+                    labels,
+                    tasks,
                     len(indices),
                     epoch
                 )

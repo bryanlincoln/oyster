@@ -133,43 +133,12 @@ def create_stats_ordered_dict(
     return stats
 
 def make_embedding_plotter(path):
-    def plot_embeddings(embeddings, tasks, num_train_tasks, epoch):
-        # normalize between 0~1
-        tasks -= tasks.min()
-        if tasks.max() - tasks.min() > 0:  # avoid division by zero
-            tasks /= tasks.max() - tasks.min()
-        elif tasks.max() != 0:  # avoid having tasks greater than 1
-            tasks /= tasks.max()
-
-        # transform to [train_size + eval_size, embedding_size]
-        embeddings = np.reshape(embeddings, (-1, embeddings.shape[-1]))
-
-        pca = PCA(n_components=2)
-        pca.fit(embeddings)
-        embeddings = pca.transform(embeddings)
-
-        embeddings_train = embeddings[num_train_tasks:, :]
-        embeddings_eval = embeddings[:num_train_tasks, :]
-        tasks_train = tasks[num_train_tasks:]
-        tasks_eval = tasks[:num_train_tasks]
-
-        plt.scatter(embeddings_train[:, 0], embeddings_train[:, 1], c=tasks_train, cmap='rainbow', marker="o", s=50, label='Train')
-        plt.clim(tasks.min(), tasks.max())
-        plt.scatter(embeddings_eval[:, 0], embeddings_eval[:, 1], c=tasks_eval, cmap='rainbow', marker="+", s=50, label='Eval')
-        plt.clim(tasks.min(), tasks.max())
-        plt.colorbar().set_label('Task', rotation=270)
-        #plt.ylim(ymax=10, ymin=-10)
-        #plt.xlim(xmax=10, xmin=-10)
-        plt.grid(color='gray', linestyle='dashed')
-        plt.grid(color='gray', linestyle='dashed')
-        plt.legend(loc='upper right')
-        plt.title('Epoch ' + str(epoch))
-        plt.savefig(os.path.join(path, 'embeddings_epoch_{}.png'.format(epoch)), format='png')
-        plt.clf()
-
-        with open('embeddings_epoch_{}.pkl'.format(epoch), 'wb') as embeddings_file:
+    def plot_embeddings(embeddings, labels, tasks, num_train_tasks, epoch):
+        embeddings_path = os.path.join(path, 'embeddings_epoch_{}.pkl'.format(epoch))
+        with open(embeddings_path, 'wb') as embeddings_file:
             pickle.dump({
                 'embeddings': embeddings,
+                'labels': labels,
                 'tasks': tasks,
                 'num_train_tasks': num_train_tasks,
                 'epoch': epoch
