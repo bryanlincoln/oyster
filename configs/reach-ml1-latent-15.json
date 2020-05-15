@@ -2,6 +2,7 @@
     "env_name": "reach-ml1",
     "n_train_tasks": 50,
     "n_eval_tasks": 10,
+    "latent_size": 15,
     "env_params": {
         "n_train_tasks": 50,
         "n_test_tasks": 10,
