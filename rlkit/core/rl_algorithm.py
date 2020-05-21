@@ -512,6 +512,14 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
                 # repeated for the number of task evals
                 labels += [label] * num_evals
 
+            # [rollouts, train + eval tasks, evals, embeddings]
+            embeddings = np.transpose(embeddings, (2, 0, 1, 3))
+            embeddings = np.reshape(embeddings, (
+                embeddings.shape[0], # rollouts
+                -1, # stack all eval embeddings, task over task
+                embeddings.shape[3], # embedding dimension
+            ))
+
             if self.plot_embeddings and len(tasks) > 0:
                 self.embedding_plotter(
                     embeddings,
@@ -520,14 +528,6 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
                     len(indices),
                     epoch
                 )
-
-            # [rollouts, train + eval tasks, evals, embeddings]
-            embeddings = np.transpose(embeddings, (2, 0, 1, 3))
-            embeddings = np.reshape(embeddings, (
-                embeddings.shape[0], # rollouts
-                -1, # stack all eval embeddings, task over task
-                embeddings.shape[3], # embedding dimension
-            ))
 
             # for each rollout, save embeddings and their labels
             for rollout, tasks_embeddings in enumerate(embeddings):

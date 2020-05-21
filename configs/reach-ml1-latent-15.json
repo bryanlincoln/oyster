@@ -9,7 +9,7 @@
         "n_tasks": 60
     },
     "algo_params": {
-        "num_iterations": 1000,
+        "num_iterations": 100000,
         "num_initial_steps": 2100,
         "num_steps_prior": 300,
         "num_steps_posterior": 0,
