@@ -2,6 +2,7 @@
     "env_name": "reach-ml1",
     "n_train_tasks": 50,
     "n_eval_tasks": 10,
+    "latent_size": 3,
     "env_params": {
         "n_train_tasks": 50,
         "n_test_tasks": 10,
@@ -21,7 +22,6 @@
         "embedding_batch_size": 256,
         "embedding_mini_batch_size": 256,
         "max_path_length": 150,
-        "plot_embeddings": true,
-        "use_next_obs_in_context": true
+        "plot_embeddings": true
     }
 }
