@@ -22,6 +22,7 @@
         "embedding_batch_size": 256,
         "embedding_mini_batch_size": 256,
         "max_path_length": 150,
-        "plot_embeddings": false
+        "plot_embeddings": true,
+        "use_next_obs_in_context": true
     }
 }
