@@ -166,7 +166,7 @@ def deep_update_dict(fr, to):
 
 @click.command()
 @click.argument('config', default=None)
-@click.option('--gpu', default=0)
+@click.option('--gpu', default=None)
 @click.option('--docker', is_flag=True, default=False)
 @click.option('--debug', is_flag=True, default=False)
 @click.option('--path_to_weights', default=None)
@@ -177,7 +177,9 @@ def main(config, gpu, docker, debug, path_to_weights):
         with open(os.path.join(config)) as f:
             exp_params = json.load(f)
         variant = deep_update_dict(exp_params, variant)
-    variant['util_params']['gpu_id'] = gpu
+    if gpu is not None:
+        variant['util_params']['gpu_id'] = gpu
+        variant['util_params']['use_gpu'] = True
     if path_to_weights is not None:
         variant['path_to_weights'] = path_to_weights
 
