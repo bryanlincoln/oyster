@@ -20,19 +20,19 @@ def identity(x):
 
 class Mlp(PyTorchModule):
     def __init__(
-            self,
-            hidden_sizes,
-            output_size,
-            input_size,
-            init_w=3e-3,
-            hidden_activation=F.relu,
-            output_activation=identity,
-            hidden_init=ptu.fanin_init,
-            b_init_value=0.1,
-            layer_norm=False,
-            layer_norm_kwargs=None,
-            dropout=False,
-            dropout_p=0.5
+        self,
+        hidden_sizes,
+        output_size,
+        input_size,
+        init_w=3e-3,
+        hidden_activation=F.relu,
+        output_activation=identity,
+        hidden_init=ptu.fanin_init,
+        b_init_value=0.1,
+        layer_norm=False,
+        layer_norm_kwargs=None,
+        dropout=False,
+        dropout_p=0.5,
     ):
         self.save_init_params(locals())
         super().__init__()
@@ -108,12 +108,7 @@ class MlpPolicy(Mlp, Policy):
     A simpler interface for creating policies.
     """
 
-    def __init__(
-            self,
-            *args,
-            obs_normalizer: TorchFixedNormalizer = None,
-            **kwargs
-    ):
+    def __init__(self, *args, obs_normalizer: TorchFixedNormalizer = None, **kwargs):
         self.save_init_params(locals())
         super().__init__(*args, **kwargs)
         self.obs_normalizer = obs_normalizer
@@ -135,33 +130,41 @@ class TanhMlpPolicy(MlpPolicy):
     """
     A helper class since most policies have a tanh output activation.
     """
+
     def __init__(self, *args, **kwargs):
         self.save_init_params(locals())
         super().__init__(*args, output_activation=torch.tanh, **kwargs)
 
 
+class SoftmaxMlpPolicy(MlpPolicy):
+    """
+    A helper class since most policies have a tanh output activation.
+    """
+
+    def __init__(self, *args, **kwargs):
+        self.save_init_params(locals())
+        super().__init__(*args, output_activation=F.softmax, **kwargs)
+
+
 class MlpEncoder(FlattenMlp):
-    '''
+    """
     encode context via MLP
-    '''
+    """
 
     def reset(self, num_tasks=1):
         pass
 
 
 class RecurrentEncoder(FlattenMlp):
-    '''
+    """
     encode context via recurrent network
-    '''
+    """
 
-    def __init__(self,
-                 *args,
-                 **kwargs
-    ):
+    def __init__(self, *args, **kwargs):
         self.save_init_params(locals())
         super().__init__(*args, **kwargs)
         self.hidden_dim = self.hidden_sizes[-1]
-        self.register_buffer('hidden', torch.zeros(1, 1, self.hidden_dim))
+        self.register_buffer("hidden", torch.zeros(1, 1, self.hidden_dim))
 
         # input should be (task, seq, feat) and hidden should be (task, 1, feat)
 
@@ -195,5 +198,51 @@ class RecurrentEncoder(FlattenMlp):
         self.hidden = self.hidden.new_full((1, num_tasks, self.hidden_dim), 0)
 
 
+class CNN(nn.Module):
+    def __init__(self, channels=3, output_size=256):
+        super(CNN, self).__init__()
 
+        # metadata
+        self.output_size = output_size
 
+        # layers
+        self.conv1 = nn.Conv2d(channels, 16, kernel_size=3, padding=1)
+        self.maxpool1 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
+        self.maxpool2 = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.linear = nn.Linear(8192, output_size)
+
+        self._initialize_weights()
+
+    def forward(self, x):
+        # preprocessing
+        x = torch.tensor(x, dtype=torch.float32) / 255.0  # normalize pixels to [0, 1]
+        x = x.permute(2, 0, 1)
+        x = x.unsqueeze(0)  # add batch dimension
+
+        # nn flow
+        # print("X", x.shape)
+        x = self.conv1(x)
+        x = self.maxpool1(x)
+        x = F.relu(x)
+        # print("S1", x.shape)
+        x = self.conv2(x)
+        x = self.maxpool2(x)
+        # print("S2", x.shape)
+        x = torch.flatten(x, 1)
+        # print("F", x.shape)
+        x = F.relu(x)
+        x = self.linear(x)
+        # print("L", x.shape)
+
+        return x[0]  # remove batch dimension
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, 0, 0.01)
+                nn.init.constant_(m.bias, 0)
