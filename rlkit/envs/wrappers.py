@@ -1,7 +1,8 @@
 import numpy as np
 from gym import Env
 from gym.spaces import Box
-import mujoco_py
+
+# import mujoco_py
 
 from rlkit.core.serializable import Serializable
 
@@ -27,7 +28,7 @@ class ProxyEnv(Serializable, Env):
         return self._wrapped_env.render(*args, **kwargs)
 
     def log_diagnostics(self, paths, *args, **kwargs):
-        if hasattr(self._wrapped_env, 'log_diagnostics'):
+        if hasattr(self._wrapped_env, "log_diagnostics"):
             self._wrapped_env.log_diagnostics(paths, *args, **kwargs)
 
     @property
@@ -45,12 +46,9 @@ class NormalizedBoxEnv(ProxyEnv, Serializable):
 
     Optionally normalize observations and scale reward.
     """
+
     def __init__(
-            self,
-            env,
-            reward_scale=1.,
-            obs_mean=None,
-            obs_std=None,
+        self, env, reward_scale=1.0, obs_mean=None, obs_std=None,
     ):
         # self._wrapped_env needs to be called first because
         # Serializable.quick_init calls getattr, on this class. And the
@@ -81,8 +79,9 @@ class NormalizedBoxEnv(ProxyEnv, Serializable):
 
     def estimate_obs_stats(self, obs_batch, override_values=False):
         if self._obs_mean is not None and not override_values:
-            raise Exception("Observation mean and std already set. To "
-                            "override, set override_values to True.")
+            raise Exception(
+                "Observation mean and std already set. To " "override, set override_values to True."
+            )
         self._obs_mean = np.mean(obs_batch, axis=0)
         self._obs_std = np.std(obs_batch, axis=0)
 
@@ -106,7 +105,7 @@ class NormalizedBoxEnv(ProxyEnv, Serializable):
     def step(self, action):
         lb = self._wrapped_env.action_space.low
         ub = self._wrapped_env.action_space.high
-        scaled_action = lb + (action + 1.) * 0.5 * (ub - lb)
+        scaled_action = lb + (action + 1.0) * 0.5 * (ub - lb)
         scaled_action = np.clip(scaled_action, lb, ub)
 
         wrapped_step = self._wrapped_env.step(scaled_action)
@@ -128,29 +127,29 @@ class NormalizedBoxEnv(ProxyEnv, Serializable):
         return getattr(self._wrapped_env, attrname)
 
 
-class CameraWrapper(object):
+# class CameraWrapper(object):
 
-    def __init__(self, env,  *args, **kwargs):
-        self._wrapped_env = env
-        self.initialize_camera()
+#     def __init__(self, env,  *args, **kwargs):
+#         self._wrapped_env = env
+#         self.initialize_camera()
 
-    def get_image(self, width=256, height=256, camera_name=None):
-        # use sim.render to avoid MJViewer which doesn't seem to work without display
-        return self.sim.render(
-            width=width,
-            height=height,
-            camera_name=camera_name,
-        )
+#     def get_image(self, width=256, height=256, camera_name=None):
+#         # use sim.render to avoid MJViewer which doesn't seem to work without display
+#         return self.sim.render(
+#             width=width,
+#             height=height,
+#             camera_name=camera_name,
+#         )
 
-    def initialize_camera(self):
-        # set camera parameters for viewing
-        sim = self.sim
-        viewer = mujoco_py.MjRenderContextOffscreen(sim)
-        camera = viewer.cam
-        camera.type = 1
-        camera.trackbodyid = 0
-        camera.elevation = -20
-        sim.add_render_context(viewer)
+#     def initialize_camera(self):
+#         # set camera parameters for viewing
+#         sim = self.sim
+#         viewer = mujoco_py.MjRenderContextOffscreen(sim)
+#         camera = viewer.cam
+#         camera.type = 1
+#         camera.trackbodyid = 0
+#         camera.elevation = -20
+#         sim.add_render_context(viewer)
 
-    def __getattr__(self, attrname):
-        return getattr(self._wrapped_env, attrname)
+#     def __getattr__(self, attrname):
+#         return getattr(self._wrapped_env, attrname)
