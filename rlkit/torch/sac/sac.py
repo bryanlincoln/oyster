@@ -191,6 +191,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
                 else None
             )
             self._take_step(indices, context, context2)
+            print('updated')
 
             # stop backprop
             self.agent.detach_z()
@@ -301,7 +302,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         terms_flat = terms.view(self.batch_size * num_tasks, -1)
         q_target = rewards_flat + (1.0 - terms_flat) * self.discount * target_v_values
         qf_loss = torch.mean((q1_pred - q_target) ** 2) + torch.mean((q2_pred - q_target) ** 2)
-        qf_loss.backward()
+        qf_loss.backward(retain_graph=True)  # retain obs encoder graph
         self.qf1_optimizer.step()
         self.qf2_optimizer.step()
         self.context_optimizer.step()
@@ -315,7 +316,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         v_target = min_q_new_actions - log_pi
         vf_loss = self.vf_criterion(v_pred, v_target.detach())
         self.vf_optimizer.zero_grad()
-        vf_loss.backward()
+        vf_loss.backward(retain_graph=True)  # retain obs encoder graph
         self.vf_optimizer.step()
         self._update_target_network()
 
@@ -335,7 +336,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         policy_loss = policy_loss + policy_reg_loss
 
         self.policy_optimizer.zero_grad()
-        policy_loss.backward()
+        policy_loss.backward(retain_graph=True)  # retain obs encoder graph, for subsequent updates
         self.policy_optimizer.step()
 
         # save some statistics for eval
