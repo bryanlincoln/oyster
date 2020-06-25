@@ -41,11 +41,10 @@ def _canonical_to_natural(mu, sigma_squared):
 
 
 class PEARLAgent(nn.Module):
-    def __init__(self, latent_dim, observation_encoder, context_encoder, context_decoder, policy, **kwargs):
+    def __init__(self, latent_dim, context_encoder, context_decoder, policy, **kwargs):
         super().__init__()
         self.latent_dim = latent_dim
 
-        self.observation_encoder = observation_encoder
         self.context_encoder = context_encoder
         self.context_decoder = context_decoder
         self.policy = policy

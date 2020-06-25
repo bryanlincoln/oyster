@@ -14,7 +14,7 @@ from tensorboardX import SummaryWriter
 
 from rlkit.envs import ENVS
 from rlkit.envs.wrappers import NormalizedBoxEnv
-from rlkit.torch.sac.policies import TanhGaussianPolicy, SoftmaxPolicy
+from rlkit.torch.sac.policies import TanhGaussianPolicy
 from rlkit.torch.networks import FlattenMlp, MlpEncoder, RecurrentEncoder, Mlp, CNN
 from rlkit.torch.sac.sac import PEARLSoftActorCritic
 from rlkit.torch.sac.agent import PEARLAgent
@@ -69,14 +69,6 @@ def experiment(variant):
     recurrent = variant["algo_params"]["recurrent"]
     encoder_model = RecurrentEncoder if recurrent else MlpEncoder
 
-    policy_model = SoftmaxPolicy if variant["algo_params"]["softmax"] else TanhGaussianPolicy
-
-    observation_encoder = (
-        CNN(channels=env.observation_space.shape[-1])
-        if variant["algo_params"]["cnn_obs_encoder"]
-        else lambda x: x
-    )
-
     context_encoder = encoder_model(
         hidden_sizes=[200, 200, 200],
         input_size=context_encoder_input_dim,
@@ -117,15 +109,13 @@ def experiment(variant):
     vf = FlattenMlp(
         hidden_sizes=[net_size, net_size, net_size], input_size=obs_dim + latent_dim, output_size=1,
     )
-    policy = policy_model(
+    policy = TanhGaussianPolicy(
         hidden_sizes=[net_size, net_size, net_size],
         obs_dim=obs_dim + latent_dim,
         latent_dim=latent_dim,
         action_dim=action_dim,
     )
-    agent = PEARLAgent(
-        latent_dim, observation_encoder, context_encoder, context_decoder, policy, **variant["algo_params"]
-    )
+    agent = PEARLAgent(latent_dim, context_encoder, context_decoder, policy, **variant["algo_params"])
     algorithm = PEARLSoftActorCritic(
         env=env,
         train_tasks=list(tasks[: variant["n_train_tasks"]]),

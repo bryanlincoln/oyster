@@ -1,11 +1,12 @@
 import numpy as np
 import torch
 from torch import nn as nn
+from torch.nn import functional as F
 
 from rlkit.core.util import Wrapper
 from rlkit.policies.base import ExplorationPolicy, Policy
 from rlkit.torch.distributions import TanhNormal
-from rlkit.torch.networks import Mlp, SoftmaxMlpPolicy
+from rlkit.torch.networks import Mlp
 from rlkit.torch.core import np_ify
 
 
@@ -110,7 +111,7 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
         )
 
 
-class SoftmaxPolicy(SoftmaxMlpPolicy):
+class CategoricalPolicy(Mlp, ExplorationPolicy):
     def __init__(self, hidden_sizes, obs_dim, latent_dim, action_dim, std=None, init_w=1e-3, **kwargs):
         self.save_init_params(locals())
         super().__init__(hidden_sizes, input_size=obs_dim, output_size=action_dim, init_w=init_w, **kwargs)
@@ -118,6 +119,41 @@ class SoftmaxPolicy(SoftmaxMlpPolicy):
     def get_action(self, obs_np, deterministic=False):
         actions = self.get_actions(obs_np[None])
         return actions[0, :], {}
+
+    @torch.no_grad()
+    def get_actions(self, obs, deterministic=False):
+        outputs = self.forward(obs, deterministic=deterministic)[0]
+        return np_ify(outputs)
+
+    def forward(
+        self, obs, reparameterize=False, deterministic=False, return_log_prob=False,
+    ):
+        """
+        :param obs: Observation
+        :param deterministic: If True, do not sample
+        :param return_log_prob: If True, return a sample and its log probability
+        """
+        h = obs
+        for i, fc in enumerate(self.fcs):
+            h = self.hidden_activation(fc(h))
+        logits = self.last_fc(h)
+        actions = torch.distributions.Categorical(logits=logits)
+
+        if deterministic:
+            action = torch.argmax(actions.probs)
+        else:
+            action = actions.sample()
+
+        mean = actions.mean
+        log_std = torch.sqrt(actions.variance)
+        log_prob = actions.log_prob(action)
+
+        return (
+            action,
+            mean,
+            log_std,
+            log_prob,
+        )
 
 
 class MakeDeterministic(Wrapper, Policy):

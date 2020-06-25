@@ -54,7 +54,6 @@ default_config = dict(
         lambda_l2=0.1,
         normalize_rewards=False,
         plot_embeddings=False,  # plot embeddings at evals
-        softmax=False,
         cnn_obs_encoder=False,
     ),
     util_params=dict(

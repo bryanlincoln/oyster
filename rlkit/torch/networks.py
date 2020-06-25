@@ -136,16 +136,6 @@ class TanhMlpPolicy(MlpPolicy):
         super().__init__(*args, output_activation=torch.tanh, **kwargs)
 
 
-class SoftmaxMlpPolicy(MlpPolicy):
-    """
-    A helper class since most policies have a tanh output activation.
-    """
-
-    def __init__(self, *args, **kwargs):
-        self.save_init_params(locals())
-        super().__init__(*args, output_activation=F.softmax, **kwargs)
-
-
 class MlpEncoder(FlattenMlp):
     """
     encode context via MLP
@@ -216,9 +206,8 @@ class CNN(nn.Module):
 
     def forward(self, x):
         # preprocessing
-        x = torch.tensor(x, dtype=torch.float32) / 255.0  # normalize pixels to [0, 1]
-        x = x.permute(2, 0, 1)
-        x = x.unsqueeze(0)  # add batch dimension
+        x /= 255.0  # normalize pixels to [0, 1]
+        x = x.permute(0, 3, 1, 2)  # assume x already has batch dimension
 
         # nn flow
         # print("X", x.shape)
@@ -235,7 +224,7 @@ class CNN(nn.Module):
         x = self.linear(x)
         # print("L", x.shape)
 
-        return x[0]  # remove batch dimension
+        return x
 
     def _initialize_weights(self):
         for m in self.modules():
