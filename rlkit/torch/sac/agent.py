@@ -41,10 +41,11 @@ def _canonical_to_natural(mu, sigma_squared):
 
 
 class PEARLAgent(nn.Module):
-    def __init__(self, latent_dim, context_encoder, context_decoder, policy, **kwargs):
+    def __init__(self, latent_dim, obs_encoder, context_encoder, context_decoder, policy, **kwargs):
         super().__init__()
         self.latent_dim = latent_dim
 
+        self.obs_encoder = obs_encoder
         self.context_encoder = context_encoder
         self.context_decoder = context_decoder
         self.policy = policy
@@ -162,6 +163,7 @@ class PEARLAgent(nn.Module):
         """ sample action from the policy, conditioned on the task embedding """
         z = self.z
         obs = ptu.from_numpy(obs[None])
+        obs = self.obs_encoder(obs)
         in_ = torch.cat([obs, z], dim=1)
         return self.policy.get_action(in_, deterministic=deterministic)
 

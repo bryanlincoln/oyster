@@ -90,14 +90,14 @@ def FloatTensor(*args, **kwargs):
 
 
 def from_numpy(*args, **kwargs):
-    if type(*args) is list:
-        batch = args[0]
-        tensors = batch[0][0][None]
-        del batch[0]  # skip first element
-        for tensor in batch:
-            tensors = torch.cat((tensors, tensor[0][None]), dim=0)
-        return tensors.float().to(device)
-    elif torch.is_tensor(*args):
+    # if type(*args) is list:
+    #     batch = args[0]
+    #     tensors = batch[0][0][None]
+    #     del batch[0]  # skip first element
+    #     for tensor in batch:
+    #         tensors = torch.cat((tensors, tensor[0][None]), dim=0)
+    #     return tensors.float().to(device)
+    if torch.is_tensor(*args):
         return torch.tensor(*args, **kwargs).float().to(device)
     return torch.from_numpy(*args, **kwargs).float().to(device)
 

@@ -75,7 +75,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         self.sparse_rewards = sparse_rewards
         self.use_next_obs_in_context = use_next_obs_in_context
 
-        self.qf1, self.qf2, self.vf = nets[1:]
+        self.qf1, self.qf2, self.vf, self.obs_encoder = nets[1:]
         self.target_vf = self.vf.copy()
 
         self.policy_optimizer = optimizer_class(self.agent.policy.parameters(), lr=policy_lr,)
@@ -117,6 +117,10 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
     ##### Data handling #####
     def unpack_batch(self, batch, sparse_reward=False):
         """ unpack a batch and return individual elements """
+
+        # encode observations (3D -> 1D if they're images)
+        batch["observations"] = self.obs_encoder(batch["observations"])
+
         o = batch["observations"][None, ...]
         a = batch["actions"][None, ...]
         if sparse_reward:
@@ -191,7 +195,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
                 else None
             )
             self._take_step(indices, context, context2)
-            print('updated')
+            print("updated")
 
             # stop backprop
             self.agent.detach_z()

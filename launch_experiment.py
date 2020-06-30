@@ -55,6 +55,12 @@ def experiment(variant):
     action_dim = int(np.prod(env.action_space.shape))
     reward_dim = 1
 
+    if variant["algo_params"]["cnn_obs_encoder"]:
+        obs_encoder = CNN(channels=env.observation_space.shape[-1])
+        obs_dim = obs_encoder.output_size
+    else:
+        obs_encoder = lambda x: x
+
     # instantiate networks
     latent_dim = variant["latent_size"]
     context_encoder_input_dim = (
@@ -115,12 +121,14 @@ def experiment(variant):
         latent_dim=latent_dim,
         action_dim=action_dim,
     )
-    agent = PEARLAgent(latent_dim, context_encoder, context_decoder, policy, **variant["algo_params"])
+    agent = PEARLAgent(
+        latent_dim, obs_encoder, context_encoder, context_decoder, policy, **variant["algo_params"]
+    )
     algorithm = PEARLSoftActorCritic(
         env=env,
         train_tasks=list(tasks[: variant["n_train_tasks"]]),
         eval_tasks=list(tasks[-variant["n_eval_tasks"] :]),
-        nets=[agent, qf1, qf2, vf],
+        nets=[agent, qf1, qf2, vf, obs_encoder],
         latent_dim=latent_dim,
         use_curiosity=variant["curiosity_params"]["use_curiosity"],
         pred_next_obs=variant["curiosity_params"]["pred_next_obs"],

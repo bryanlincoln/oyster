@@ -7,7 +7,7 @@
         "n_train_tasks": 50
     },
     "algo_params": {
-        "replay_buffer_size": 1000,
+        "replay_buffer_size": 100,
         "cnn_obs_encoder": true,
         "num_iterations": 30,
         "num_initial_steps": 20,
