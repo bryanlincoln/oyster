@@ -55,6 +55,7 @@ default_config = dict(
         normalize_rewards=False,
         plot_embeddings=False,  # plot embeddings at evals
         cnn_obs_encoder=False,
+        categorical_policy=False,
     ),
     util_params=dict(
         base_log_dir="output",

@@ -196,7 +196,6 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
                 else None
             )
             self._take_step(indices, context, context2)
-            print("updated")
 
             # stop backprop
             self.agent.detach_z()
@@ -219,7 +218,10 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
 
         # run inference in networks
         policy_outputs, task_z, z = self.agent(obs, context)
-        new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
+        if self.agent.categorical_policy:
+            new_actions, logits, log_pi = policy_outputs[:4]
+        else:
+            new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
 
         if self.use_curiosity:
             if self.pred_next_obs:
@@ -331,13 +333,16 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
 
         policy_loss = (log_pi - log_policy_target).mean()
 
-        mean_reg_loss = self.policy_mean_reg_weight * (policy_mean ** 2).mean()
-        std_reg_loss = self.policy_std_reg_weight * (policy_log_std ** 2).mean()
-        pre_tanh_value = policy_outputs[-1]
-        pre_activation_reg_loss = self.policy_pre_activation_weight * (
-            (pre_tanh_value ** 2).sum(dim=1).mean()
-        )
-        policy_reg_loss = mean_reg_loss + std_reg_loss + pre_activation_reg_loss
+        if not self.agent.categorical_policy:
+            mean_reg_loss = self.policy_mean_reg_weight * (policy_mean ** 2).mean()
+            std_reg_loss = self.policy_std_reg_weight * (policy_log_std ** 2).mean()
+            pre_tanh_value = policy_outputs[-1]
+            pre_activation_reg_loss = self.policy_pre_activation_weight * (
+                (pre_tanh_value ** 2).sum(dim=1).mean()
+            )
+            policy_reg_loss = mean_reg_loss + std_reg_loss + pre_activation_reg_loss
+        else:
+            policy_reg_loss = 0  # TODO
         policy_loss = policy_loss + policy_reg_loss
 
         self.policy_optimizer.zero_grad()
@@ -363,10 +368,13 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
             self.eval_statistics.update(create_stats_ordered_dict("Q Predictions", ptu.get_numpy(q1_pred),))
             self.eval_statistics.update(create_stats_ordered_dict("V Predictions", ptu.get_numpy(v_pred),))
             self.eval_statistics.update(create_stats_ordered_dict("Log Pis", ptu.get_numpy(log_pi),))
-            self.eval_statistics.update(create_stats_ordered_dict("Policy mu", ptu.get_numpy(policy_mean),))
-            self.eval_statistics.update(
-                create_stats_ordered_dict("Policy log std", ptu.get_numpy(policy_log_std),)
-            )
+            if not self.agent.categorical_policy:
+                self.eval_statistics.update(
+                    create_stats_ordered_dict("Policy mu", ptu.get_numpy(policy_mean),)
+                )
+                self.eval_statistics.update(
+                    create_stats_ordered_dict("Policy log std", ptu.get_numpy(policy_log_std),)
+                )
 
             if self.use_curiosity:
                 self.eval_statistics["Decoder Loss"] = decoder_loss.cpu().detach().item()

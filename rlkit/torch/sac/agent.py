@@ -41,7 +41,16 @@ def _canonical_to_natural(mu, sigma_squared):
 
 
 class PEARLAgent(nn.Module):
-    def __init__(self, latent_dim, obs_encoder, context_encoder, context_decoder, policy, **kwargs):
+    def __init__(
+        self,
+        latent_dim,
+        obs_encoder,
+        context_encoder,
+        context_decoder,
+        policy,
+        categorical_policy=False,
+        **kwargs
+    ):
         super().__init__()
         self.latent_dim = latent_dim
 
@@ -54,6 +63,8 @@ class PEARLAgent(nn.Module):
         self.use_ib = kwargs["use_information_bottleneck"]
         self.sparse_rewards = kwargs["sparse_rewards"]
         self.use_next_obs_in_context = kwargs["use_next_obs_in_context"]
+
+        self.categorical_policy = categorical_policy
 
         # initialize buffers for z dist and z
         # use buffers so latent context can be saved along with model weights

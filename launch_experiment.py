@@ -14,7 +14,7 @@ from tensorboardX import SummaryWriter
 
 from rlkit.envs import ENVS
 from rlkit.envs.wrappers import NormalizedBoxEnv
-from rlkit.torch.sac.policies import TanhGaussianPolicy
+from rlkit.torch.sac.policies import TanhGaussianPolicy, CategoricalPolicy
 from rlkit.torch.networks import FlattenMlp, MlpEncoder, RecurrentEncoder, Mlp, CNN
 from rlkit.torch.sac.sac import PEARLSoftActorCritic
 from rlkit.torch.sac.agent import PEARLAgent
@@ -49,7 +49,11 @@ def experiment(variant):
     )
 
     # create multi-task environment and sample tasks
-    env = NormalizedBoxEnv(ENVS[variant["env_name"]](**variant["env_params"]))
+    env = (
+        ENVS[variant["env_name"]](**variant["env_params"])
+        if variant["algo_params"]["categorical_policy"]
+        else NormalizedBoxEnv(ENVS[variant["env_name"]](**variant["env_params"]))
+    )
     tasks = env.get_all_task_idx()
     obs_dim = int(np.prod(env.observation_space.shape))
     action_dim = int(np.prod(env.action_space.shape))
@@ -74,6 +78,7 @@ def experiment(variant):
     net_size = variant["net_size"]
     recurrent = variant["algo_params"]["recurrent"]
     encoder_model = RecurrentEncoder if recurrent else MlpEncoder
+    policy_model = CategoricalPolicy if variant["algo_params"]["categorical_policy"] else TanhGaussianPolicy
 
     context_encoder = encoder_model(
         hidden_sizes=[200, 200, 200],
@@ -115,7 +120,7 @@ def experiment(variant):
     vf = FlattenMlp(
         hidden_sizes=[net_size, net_size, net_size], input_size=obs_dim + latent_dim, output_size=1,
     )
-    policy = TanhGaussianPolicy(
+    policy = policy_model(
         hidden_sizes=[net_size, net_size, net_size],
         obs_dim=obs_dim + latent_dim,
         latent_dim=latent_dim,

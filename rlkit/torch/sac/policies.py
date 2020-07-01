@@ -110,6 +110,49 @@ class TanhGaussianPolicy(Mlp, ExplorationPolicy):
         )
 
 
+class CategoricalPolicy(Mlp, ExplorationPolicy):
+    def __init__(self, hidden_sizes, obs_dim, latent_dim, action_dim, std=None, init_w=1e-3, **kwargs):
+        self.save_init_params(locals())
+        super().__init__(hidden_sizes, input_size=obs_dim, output_size=action_dim, init_w=init_w, **kwargs)
+
+    def get_action(self, obs_np, deterministic=False):
+        actions = self.get_actions(obs_np[None])
+        return actions[0, :], {}
+
+    @torch.no_grad()
+    def get_actions(self, obs, deterministic=False):
+        outputs = self.forward(obs, deterministic=deterministic)[0]
+        return np_ify(outputs)
+
+    def forward(
+        self, obs, reparameterize=False, deterministic=False, return_log_prob=False,
+    ):
+        """
+        :param obs: Observation
+        :param deterministic: If True, do not sample
+        :param return_log_prob: If True, return a sample and its log probability
+        """
+        h = obs
+        for i, fc in enumerate(self.fcs):
+            h = self.hidden_activation(fc(h))
+        logits = self.last_fc(h)
+        actions = torch.distributions.Categorical(logits=logits)
+
+        if deterministic:
+            action = torch.argmax(actions.probs)
+        else:
+            action = actions.sample()
+
+        action_oh = nn.functional.one_hot(action.to(torch.int64), num_classes=self.output_size)
+        action_oh = action_oh.to(torch.float32)
+
+        return (
+            action_oh,
+            logits,
+            actions.log_prob(action),
+        )
+
+
 class MakeDeterministic(Wrapper, Policy):
     def __init__(self, stochastic_policy):
         super().__init__(stochastic_policy)
