@@ -120,6 +120,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
 
         # encode observations (3D -> 1D if they're images)
         batch["observations"] = self.obs_encoder(batch["observations"])
+        batch["next_observations"] = self.obs_encoder(batch["next_observations"])
 
         o = batch["observations"][None, ...]
         a = batch["actions"][None, ...]
