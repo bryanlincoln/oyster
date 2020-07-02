@@ -9,16 +9,18 @@
     "algo_params": {
         "cnn_obs_encoder": true,
         "categorical_policy": true,
-        "replay_buffer_size": 10000,
+        "replay_buffer_size": 2000,
+        "meta_batch": 4,
         "num_iterations": 100000,
         "num_initial_steps": 2000,
-        "num_steps_prior": 400,
+        "num_steps_prior": 300,
         "num_steps_posterior": 0,
-        "num_extra_rl_steps_posterior": 600,
+        "num_extra_rl_steps_posterior": 400,
+        "num_train_steps_per_itr": 500,
         "num_evals": 1,
         "num_steps_per_eval": 600,
         "num_exp_traj_eval": 2,
-        "max_path_length": 1000,
+        "max_path_length": 500,
         "embedding_batch_size": 100,
         "embedding_mini_batch_size": 100
     }
