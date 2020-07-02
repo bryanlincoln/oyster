@@ -188,7 +188,7 @@ def main(config, gpu, docker, debug, path_to_weights):
     if path_to_weights is not None:
         variant["path_to_weights"] = path_to_weights
 
-    variant["algo_params"]["experiment_name"] = "".join(config.split("/")[-1].split(".")[:-1])
+    variant["algo_params"]["experiment_name"] = ".".join(config.split("/")[-1].split(".")[:-1])
 
     experiment(variant)
 
