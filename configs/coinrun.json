@@ -9,7 +9,7 @@
     "algo_params": {
         "cnn_obs_encoder": true,
         "categorical_policy": true,
-        "replay_buffer_size": 2000,
+        "replay_buffer_size": 10000,
         "meta_batch": 4,
         "num_iterations": 100000,
         "num_initial_steps": 2100,
