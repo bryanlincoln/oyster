@@ -206,7 +206,7 @@ class CNN(nn.Module):
 
     def forward(self, x):
         # preprocessing
-        x = ptu.FloatTensor(x) / 255.0  # normalize pixels to [0, 1]
+        x /= 255.0  # normalize pixels to [0, 1]
         x = x.permute(0, 3, 1, 2)  # assume x already has batch dimension
 
         # nn flow

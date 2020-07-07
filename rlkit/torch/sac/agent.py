@@ -104,15 +104,17 @@ class PEARLAgent(nn.Module):
         """ append single transition to the current context """
         o, a, r, no, d, info = inputs
 
+        # send to device and cast to float
+        o = ptu.from_numpy(o)
+        a = ptu.from_numpy(a)
+
         # encode obs and next obs
         enc = self.obs_encoder(np.array([o, no]))
-        o = enc[0]
-        no = enc[1]
+        o = enc[0][None, None, ...]
+        no = enc[1][None, None, ...]
 
         if self.sparse_rewards:
             r = info["sparse_reward"]
-        o = ptu.from_numpy(o[None, None, ...])
-        a = ptu.from_numpy(a[None, None, ...])
         r = ptu.from_numpy(np.array([r])[None, None, ...])
         no = ptu.from_numpy(no[None, None, ...])
 
