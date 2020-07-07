@@ -103,6 +103,12 @@ class PEARLAgent(nn.Module):
     def update_context(self, inputs):
         """ append single transition to the current context """
         o, a, r, no, d, info = inputs
+
+        # encode obs and next obs
+        enc = self.obs_encoder(np.array([o, no]))
+        o = enc[0]
+        no = enc[1]
+
         if self.sparse_rewards:
             r = info["sparse_reward"]
         o = ptu.from_numpy(o[None, None, ...])
