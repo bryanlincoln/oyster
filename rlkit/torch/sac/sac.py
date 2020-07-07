@@ -102,7 +102,11 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
     ###### Torch stuff #####
     @property
     def networks(self):
-        return self.agent.networks + [self.agent] + [self.qf1, self.qf2, self.vf, self.target_vf]
+        return (
+            self.agent.networks
+            + [self.agent]
+            + [self.qf1, self.qf2, self.vf, self.target_vf, self.obs_encoder]
+        )
 
     def training_mode(self, mode):
         for net in self.networks:
