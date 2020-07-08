@@ -1,23 +1,23 @@
 {
     "env_name": "cheetah-vel",
-    "n_train_tasks": 100,
-    "n_eval_tasks": 30,
+    "n_train_tasks": 10,
+    "n_eval_tasks": 3,
     "env_params": {
-        "n_tasks": 130,
-        "n_train_tasks": 100,
+        "n_tasks": 13,
+        "n_train_tasks": 10,
         "out_of_distribution": true
     },
     "algo_params": {
         "num_iterations": 1,
-        "num_initial_steps": 2000,
-        "num_steps_prior": 400,
+        "num_initial_steps": 2,
+        "num_steps_prior": 2,
         "num_steps_posterior": 0,
-        "num_extra_rl_steps_posterior": 600,
+        "num_extra_rl_steps_posterior": 2,
         "num_evals": 5,
-        "num_steps_per_eval": 600,
+        "num_train_steps_per_itr": 1,
+        "num_steps_per_eval": 2,
         "num_exp_traj_eval": 1,
         "embedding_batch_size": 100,
         "embedding_mini_batch_size": 100
-    },
-    "path_to_weights": "output/cheetah-vel/2020_03_16_21_20_07"
+    }
 }
