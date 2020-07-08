@@ -109,8 +109,8 @@ class PEARLAgent(nn.Module):
         no = ptu.from_numpy(no)
 
         # encode obs and next obs
-        o = self.obs_encoder(o[None])[None]
-        no = self.obs_encoder(no[None])[None]
+        o = self.obs_encoder(o[None])[None, ...]
+        no = self.obs_encoder(no[None])[None, ...]
 
         if self.sparse_rewards:
             r = info["sparse_reward"]
