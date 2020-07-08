@@ -106,17 +106,16 @@ class PEARLAgent(nn.Module):
 
         # send to device and cast to float
         o = ptu.from_numpy(o)
-        a = ptu.from_numpy(a)
+        no = ptu.from_numpy(no)
 
         # encode obs and next obs
-        enc = self.obs_encoder(np.array([o, no]))
-        o = enc[0][None, None, ...]
-        no = enc[1][None, None, ...]
+        o = self.obs_encoder(o[None])[None]
+        no = self.obs_encoder(no[None])[None]
 
         if self.sparse_rewards:
             r = info["sparse_reward"]
         r = ptu.from_numpy(np.array([r])[None, None, ...])
-        no = ptu.from_numpy(no[None, None, ...])
+        a = ptu.from_numpy(a[None, None, ...])
 
         if self.use_next_obs_in_context:
             data = torch.cat([o, a, r, no], dim=2)
