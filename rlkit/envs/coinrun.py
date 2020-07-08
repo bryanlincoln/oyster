@@ -14,6 +14,7 @@ class CoinRunEnv:
         self.n_test_tasks = n_test_tasks
         self.tasks = []
         self._sample_tasks()  # fill up self.tasks
+        self._goal = 0
         self.env = self.tasks[0]  # this env will change depending on the idx
 
         self.observation_space = self.env.observation_space
@@ -42,6 +43,7 @@ class CoinRunEnv:
 
     def reset_task(self, idx):
         self.env = self.tasks[idx]
+        self._goal = idx
         self.reset()
 
     def render(self):

@@ -149,7 +149,7 @@ class CategoricalPolicy(Mlp, ExplorationPolicy):
         return (
             action_oh,
             logits,
-            actions.log_prob(action),
+            logits,
         )
 
 

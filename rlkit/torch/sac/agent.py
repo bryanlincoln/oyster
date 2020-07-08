@@ -183,7 +183,8 @@ class PEARLAgent(nn.Module):
         obs = ptu.from_numpy(obs[None])
         obs = self.obs_encoder(obs)
         in_ = torch.cat([obs, z], dim=1)
-        return self.policy.get_action(in_, deterministic=deterministic)
+        action, info = self.policy.get_action(in_, deterministic=deterministic)
+        return action[0], info  # this method receives 1 observation and returns 1 action
 
     def set_num_steps_total(self, n):
         self.policy.set_num_steps_total(n)

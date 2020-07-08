@@ -223,7 +223,7 @@ class PEARLSoftActorCritic(MetaRLAlgorithm):
         # run inference in networks
         policy_outputs, task_z, z = self.agent(obs, context)
         if self.agent.categorical_policy:
-            new_actions, logits, log_pi = policy_outputs[:4]
+            new_actions, log_pi = policy_outputs[:4]
         else:
             new_actions, policy_mean, policy_log_std, log_pi = policy_outputs[:4]
 
