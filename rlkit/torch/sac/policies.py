@@ -146,11 +146,10 @@ class CategoricalPolicy(Mlp, ExplorationPolicy):
         action_oh = nn.functional.one_hot(action.to(torch.int64), num_classes=self.output_size)
         action_oh = action_oh.to(torch.float32)
 
-        return (
-            action_oh,
-            logits,
-            logits,
-        )
+        # TODO is this right?
+        log_pi = actions.log_prob(action).unsqueeze(1)
+
+        return action_oh, log_pi
 
 
 class MakeDeterministic(Wrapper, Policy):
