@@ -368,10 +368,11 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             num_transitions += num
             num_trajs += 1
             if num_trajs >= self.num_exp_traj_eval:
+                print(num_transitions)
                 self.agent.infer_posterior(self.agent.context)
                 # fetch fist element since the batch (task) size is 1
                 embeddings.append(self.agent.z.detach().cpu().numpy()[0])
-
+        print(len(embeddings))
         if self.sparse_rewards:
             for p in paths:
                 sparse_rewards = np.stack(e["sparse_reward"] for e in p["env_infos"]).reshape(-1, 1)
@@ -399,7 +400,6 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             task_embeddings = []  # [eval, rolout, embedding]
             for r in range(self.num_evals):
                 paths, embeddings = self.collect_paths(idx, epoch, r)
-                print(embeddings.shape)
                 task_embeddings.append(embeddings)  # evals
                 all_rets.append([eval_util.get_average_returns([p]) for p in paths])
                 all_paths.append(paths)
