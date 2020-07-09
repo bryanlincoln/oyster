@@ -10,6 +10,7 @@
         "cnn_obs_encoder": true,
         "categorical_policy": true,
         "replay_buffer_size": 2,
+        "meta_batch": 4,
         "num_iterations": 30,
         "num_initial_steps": 2,
         "num_steps_prior": 2,
@@ -19,8 +20,11 @@
         "num_evals": 1,
         "num_steps_per_eval": 2,
         "num_exp_traj_eval": 1,
+        "num_epochs_to_skip_eval": 0,
         "max_path_length": 2,
         "embedding_batch_size": 2,
-        "embedding_mini_batch_size": 2
+        "embedding_mini_batch_size": 2,
+        "plot_embeddings": true,
+        "use_next_obs_in_context": true
     }
 }

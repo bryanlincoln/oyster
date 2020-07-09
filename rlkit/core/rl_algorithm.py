@@ -399,6 +399,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             task_embeddings = []  # [eval, rolout, embedding]
             for r in range(self.num_evals):
                 paths, embeddings = self.collect_paths(idx, epoch, r)
+                print(embeddings.shape)
                 task_embeddings.append(embeddings)  # evals
                 all_rets.append([eval_util.get_average_returns([p]) for p in paths])
                 all_paths.append(paths)
