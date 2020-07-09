@@ -19,7 +19,7 @@
         "num_extra_rl_steps_posterior": 1000,
         "num_evals": 4,
         "num_steps_per_eval": 1500,
-        "num_exp_traj_eval": 500,
+        "num_exp_traj_eval": 2,
         "num_epochs_to_skip_eval": 0,
         "max_path_length": 500,
         "embedding_batch_size": 256,
