@@ -408,8 +408,8 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             all_rets = [a[:n] for a in all_rets]
             all_rets = np.mean(np.stack(all_rets), axis=0)  # avg return per nth rollout
             online_returns.append(all_rets)
-            task_embeddings = np.concatenate(task_embeddings, axis=0)
-            # task_embeddings = np.mean(task_embeddings, axis=0) # avg embedding per nth rollout
+            # task_embeddings = np.concatenate(task_embeddings, axis=0)
+            task_embeddings = np.mean(task_embeddings, axis=0)  # avg embedding per nth rollout
             all_embeddings.append(task_embeddings)
         n = min([len(t) for t in online_returns])
         online_returns = [t[:n] for t in online_returns]
@@ -478,7 +478,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
         eval_util.dprint(test_online_returns)
         eval_util.get_env_agent_path_information(eval_paths, self.eval_statistics, "test")
 
-        if self.tbwriter is not None:
+        if self.tbwriter is not None and self.plot_embeddings:
             # [train + eval tasks, evals, rollouts, embeddings]
             embeddings = np.concatenate((train_embeddings, test_embeddings), axis=0)
 
@@ -525,7 +525,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
                 ),
             )
 
-            if self.plot_embeddings and len(tasks) > 0:
+            if len(tasks) > 0:
                 self.embedding_plotter(embeddings, labels, tasks, len(indices), epoch)
 
             # for each rollout, save embeddings and their labels
