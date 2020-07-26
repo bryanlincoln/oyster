@@ -22,10 +22,11 @@ class ProcgenEnv:
         self.n_train_tasks = n_train_tasks
         self.n_test_tasks = n_test_tasks
         self.tasks = []
-        self._sample_tasks()  # fill up self.tasks
         self._goal = 0
         self.distribution_mode = distribution_mode
         self.env_names = env_names
+
+        self._sample_tasks()  # fill up self.tasks
         self.env = self.tasks[0]  # this env will change depending on the idx
 
         self.observation_space = self.env.observation_space
