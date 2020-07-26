@@ -1,10 +1,12 @@
 {
-    "env_name": "coinrun",
+    "env_name": "procgen",
     "n_train_tasks": 50,
     "n_eval_tasks": 10,
     "env_params": {
         "n_tasks": 60,
-        "n_train_tasks": 50
+        "n_train_tasks": 50,
+        "distribution": "easy",
+        "env_names": "procgen:procgen-chaser-v0"
     },
     "algo_params": {
         "cnn_obs_encoder": true,
