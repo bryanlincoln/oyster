@@ -409,7 +409,7 @@ class MetaRLAlgorithm(metaclass=abc.ABCMeta):
             all_rets = np.mean(np.stack(all_rets), axis=0)  # avg return per nth rollout
             online_returns.append(all_rets)
             # task_embeddings = np.concatenate(task_embeddings, axis=0)
-            task_embeddings = np.mean(task_embeddings, axis=0)  # avg embedding per nth rollout
+            task_embeddings = np.mean(np.concatenate(task_embeddings), axis=0)  # avg rollout embeddings
             all_embeddings.append(task_embeddings)
         n = min([len(t) for t in online_returns])
         online_returns = [t[:n] for t in online_returns]
